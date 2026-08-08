@@ -25,6 +25,7 @@
     "viem": "^2.55.11"
   },
   "devDependencies": {
+    "@prisma/config": "^7.9.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

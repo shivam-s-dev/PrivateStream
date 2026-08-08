@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  walletAddress String    @unique
+  displayName   String?
+  avatarUrl     String?
+  role          UserRole  @default(BUYER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  datasets      Dataset[]
+  sessions      Session[]
+  earnings      Earning[]
+}
+
+enum UserRole {
+  BUYER
+  PROVIDER
+  BOTH
+}
+
+model Dataset {
+  id            String        @id @default(cuid())
+  providerId    String
+  provider      User          @relation(fields: [providerId], references: [id])
+  title         String
+  description   String
+  category      DataCategory
+  pricePerSecond Decimal      @db.Decimal(18, 9)  // USDC per second
+  sampleUrl     String?
+  endpointUrl   String        // The actual data endpoint (server-side only)
+  isActive      Boolean       @default(true)
+  totalEarned   Decimal       @default(0) @db.Decimal(18, 6)
+  totalSessions Int           @default(0)
+  tags          String[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  sessions      Session[]
+}
+
+enum DataCategory {
+  DEX_ANALYTICS
+  PRICE_FEEDS
+  WALLET_INTELLIGENCE
+  CREDIT_SCORING
+  ORDERBOOK_DATA
+  COMPLIANCE_DATA
+  CUSTOM
+}
+
+model Session {
+  id              String        @id @default(cuid())
+  buyerId         String
+  buyer           User          @relation(fields: [buyerId], references: [id])
+  datasetId       String
+  dataset         Dataset       @relation(fields: [datasetId], references: [id])
+  channelAddress  String        // Soroban channel contract address
+  budgetUsdc      Decimal       @db.Decimal(18, 6)  // pre-authorized budget
+  spentUsdc       Decimal       @default(0) @db.Decimal(18, 6)
+  status          SessionStatus @default(OPEN)
+  openedAt        DateTime      @default(now())
+  closedAt        DateTime?
+  dataPoints      Int           @default(0)
+
+  payments        Payment[]
+}
+
+enum SessionStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+  FAILED
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  sessionId     String
+  session       Session   @relation(fields: [sessionId], references: [id])
+  amountUsdc    Decimal   @db.Decimal(18, 9)
+  commitment    String    // cumulative signed commitment (off-chain MPP)
+  settledTxHash String?   // Stellar transaction hash if settled on-chain
+  createdAt     DateTime  @default(now())
+}
+
+model Earning {
+  id            String    @id @default(cuid())
+  providerId    String
+  provider      User      @relation(fields: [providerId], references: [id])
+  grossUsdc     Decimal   @db.Decimal(18, 6)
+  feeUsdc       Decimal   @db.Decimal(18, 6)   // 0.5% PrivateStream fee
+  netUsdc       Decimal   @db.Decimal(18, 6)
+  periodStart   DateTime
+  periodEnd     DateTime
+  settledTxHash String?
+  createdAt     DateTime  @default(now())
+}
