@@ -1,0 +1,19 @@
+name: Keep API Awake
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API Health Endpoint
+        run: |
+          # The URL is read from GitHub Repository Secrets (API_URL) 
+          # Fallback to a placeholder if the secret isn't set yet
+          TARGET_URL="${{ secrets.API_URL || 'https://privatestream-api.onrender.com' }}/health"
+          echo "Pinging $TARGET_URL..."
+          curl -sS --max-time 10 $TARGET_URL || echo "Ping failed, but workflow will continue"
