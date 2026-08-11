@@ -1,0 +1,43 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'package.json'
+      - 'next.config.ts'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'package.json'
+      - 'next.config.ts'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+      
+    - name: Build Next.js application
+      run: npm run build
+      env:
+        # Provide dummy env vars so the build doesn't fail if they are strictly required
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+        NEXT_PUBLIC_API_URL: "http://localhost:4000"
+        NEXT_PUBLIC_STELLAR_NETWORK: "testnet"
+        NEXT_PUBLIC_CONTRACT_MARKETPLACE: "CDHYKZOFKDQNS5S4RY2AGBYWB7VDRN3INFBFKNKLULD2KA24W2RE66UD"
