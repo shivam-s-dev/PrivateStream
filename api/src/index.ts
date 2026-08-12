@@ -4,26 +4,31 @@ import 'dotenv/config'
 
 import datasetRoutes from './routes/datasets'
 import sessionRoutes from './routes/sessions'
-import { mppMethods } from './services/mpp'
 
 const app = express()
 
-app.use(cors())
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}))
 app.use(express.json())
 
-// Mount MPP routes/methods (Placeholder for how mppx/server attaches to Express)
-// If mppx provides an Express middleware, it would be attached here.
-// For now, we'll assume it's custom integrated or a simple endpoint.
-
-app.use('/datasets', datasetRoutes)
-app.use('/sessions', sessionRoutes)
+// API prefix
+app.use('/api/datasets', datasetRoutes)
+app.use('/api/sessions', sessionRoutes)
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
+  res.json({
+    status: 'ok',
+    network: process.env.STELLAR_NETWORK || 'testnet',
+    contract: process.env.CONTRACT_MARKETPLACE,
+  })
 })
 
 const PORT = process.env.PORT || 4000
 
 app.listen(PORT, () => {
-  console.log(`[API] Server listening on port ${PORT}`)
+  console.log(`[PrivateStream API] Listening on port ${PORT}`)
+  console.log(`[PrivateStream API] Stellar network: ${process.env.STELLAR_NETWORK || 'testnet'}`)
+  console.log(`[PrivateStream API] Marketplace contract: ${process.env.CONTRACT_MARKETPLACE}`)
 })

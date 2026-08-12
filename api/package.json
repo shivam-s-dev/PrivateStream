@@ -17,6 +17,7 @@
     "@stellar/mpp": "^0.7.1",
     "@stellar/stellar-sdk": "^16.2.0",
     "@types/pg": "^8.21.0",
+    "@upstash/redis": "^1.38.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
