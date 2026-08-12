@@ -1,7 +1,7 @@
 #![no_std]
 use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short,
-    Address, Env, String, Vec, Map,
+    Address, Env, String, Vec,
     token::Client as TokenClient,
 };
 
@@ -157,3 +157,5 @@ impl MarketplaceContract {
         env.storage().persistent().set(&DataKey::Dataset(dataset_id), &dataset);
     }
 }
+
+mod test;
