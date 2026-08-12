@@ -72,7 +72,7 @@ type Session = {
 export default function DashboardPage() {
   const { connected, publicKey } = useWallet()
   const [sessions, setSessions] = useState<Session[]>([])
-  const [loadingSessions, setLoadingSession] = useState(true)
+  const [loadingSession, setLoadingSession] = useState(true)
   const [apiOnline, setApiOnline] = useState(false)
 
   useEffect(() => {
