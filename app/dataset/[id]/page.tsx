@@ -106,7 +106,7 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
             <div className="stat-card">
               <span className="stat-label">Price per second</span>
               <span className="stat-value" style={{ fontSize: 20, color: C.accent, fontFamily: 'monospace' }}>
-                ${dataset.pricePerSecond.toFixed(6)}
+                ${Number(dataset.pricePerSecond).toFixed(6)}
               </span>
               <span className="stat-sub">USDC / sec</span>
             </div>

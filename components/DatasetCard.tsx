@@ -42,7 +42,7 @@ export function DatasetCard({ dataset }: { dataset: Dataset }) {
       <div className="flex items-center justify-between pt-3 border-t border-border">
         <div>
           <span className="font-mono text-accent font-medium">
-            ${dataset.pricePerSecond.toFixed(6)}
+            ${Number(dataset.pricePerSecond).toFixed(6)}
           </span>
           <span className="text-muted text-xs">/second</span>
         </div>
