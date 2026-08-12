@@ -1,0 +1,39 @@
+name: PrivateStream CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-smart-contracts:
+    name: Test Soroban Smart Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Run Cargo Test
+        working-directory: ./contracts/marketplace
+        run: cargo test
+
+  test-backend:
+    name: Test Node.js Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          cache-dependency-path: './api/package-lock.json'
+      - name: Install Dependencies
+        working-directory: ./api
+        run: npm ci
+      - name: Run Jest Tests
+        working-directory: ./api
+        run: npm run test
