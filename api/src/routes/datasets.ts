@@ -77,6 +77,10 @@ router.post('/', async (req, res) => {
       }
     })
 
+    // Invalidate the cache so it appears on Explore immediately
+    await redis.del('datasets:list:all')
+    await redis.del(`datasets:list:${body.category}`)
+
     // Register on Soroban marketplace contract (Placeholder for actual call)
     // await registerDatasetOnChain(dataset.id, user.walletAddress, body.pricePerSecond)
 
