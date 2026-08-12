@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
   if (!connected) return <WalletGate />
 
-  const totalSpent    = sessions.reduce((a, s) => a + (s.spentUsdc ?? 0), 0)
+  const totalSpent    = sessions.reduce((a, s) => a + Number(s.spentUsdc ?? 0), 0)
   const openSessions  = sessions.filter(s => s.status === 'OPEN').length
 
   // Earnings chart — derived from closed sessions by day
@@ -110,9 +110,9 @@ export default function DashboardPage() {
   sessions.forEach(s => {
     const day = days[new Date(s.createdAt).getDay()]
     const entry = earningsData.find(e => e.day === day)
-    if (entry) entry.usdc += s.spentUsdc ?? 0
+    if (entry) entry.usdc += Number(s.spentUsdc ?? 0)
   })
-  const totalEarnings = earningsData.reduce((a, e) => a + e.usdc, 0)
+  const totalEarnings = earningsData.reduce((a, e) => a + Number(e.usdc), 0)
 
   return (
     <div style={{ minHeight: '100vh', background: '#08080E', color: '#EEEEFF' }}>
