@@ -26,6 +26,7 @@ export default function CreateDatasetPage() {
   const { connected, publicKey } = useWallet()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successData, setSuccessData] = useState<{ id: string, txHash?: string } | null>(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -75,8 +76,7 @@ export default function CreateDatasetPage() {
       }
 
       const result = await res.json()
-      // Redirect to explore page or dataset page
-      router.push(`/dataset/${result.id}`)
+      setSuccessData(result)
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.')
     } finally {
@@ -96,11 +96,49 @@ export default function CreateDatasetPage() {
           </p>
 
           <form onSubmit={handleSubmit} style={{ background: '#0F0F1A', border: '1px solid #2C2C45', borderRadius: 16, padding: 32 }}>
-            {error && (
-              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#EF4444', padding: '12px 16px', borderRadius: 8, marginBottom: 24, fontSize: 14 }}>
-                {error}
-              </div>
-            )}
+            
+            {successData ? (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ padding: '32px 24px', textAlign: 'center', background: 'rgba(34,211,160,0.05)', border: '1px solid rgba(34,211,160,0.2)', borderRadius: 12 }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(34,211,160,0.1)', color: '#22D3A0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 600, color: '#EEEEFF', marginBottom: 8 }}>Dataset Listed Successfully!</h3>
+                <p style={{ color: '#9898BB', fontSize: 14, marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
+                  Your data feed is now live on the PrivateStream marketplace and has been registered on the Stellar Testnet.
+                </p>
+                
+                {successData.txHash && (
+                  <div style={{ background: '#151522', padding: 16, borderRadius: 8, textAlign: 'left', marginBottom: 24, border: '1px solid #2C2C45' }}>
+                    <p style={{ fontSize: 12, color: '#5A5A7A', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Registration Tx Hash</p>
+                    <p style={{ fontSize: 13, color: '#EEEEFF', fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 12 }}>{successData.txHash}</p>
+                    <a 
+                      href={`https://stellar.expert/explorer/testnet/tx/${successData.txHash}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ color: '#8888FF', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                      className="hover-text-primary"
+                    >
+                      Verify on Stellar Expert
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => router.push(`/dataset/${successData.id}`)}
+                  className="btn-primary"
+                  style={{ padding: '10px 24px', fontSize: 14 }}
+                >
+                  View Dataset Page
+                </button>
+              </motion.div>
+            ) : (
+              <>
+                {error && (
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#EF4444', padding: '12px 16px', borderRadius: 8, marginBottom: 24, fontSize: 14 }}>
+                    {error}
+                  </div>
+                )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {/* Title */}
@@ -207,10 +245,13 @@ export default function CreateDatasetPage() {
               </button>
             </div>
             
-            {!connected && (
+            {!connected && !successData && (
               <p style={{ fontSize: 12, color: '#FBBF24', marginTop: 12, textAlign: 'right' }}>
                 You must connect your wallet to list a dataset.
               </p>
+            )}
+            
+            </>
             )}
           </form>
         </motion.div>
