@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - 'api/**'
+      - 'prisma/**'
   pull_request:
     paths:
       - 'api/**'
+      - 'prisma/**'
 
 jobs:
   build-and-test:
@@ -14,18 +16,22 @@ jobs:
     defaults:
       run:
         working-directory: ./api
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: api/package-lock.json
-          
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-        
-      - name: Type Check
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=../prisma/schema.prisma
+
+      - name: Type check
         run: npx tsc --noEmit
