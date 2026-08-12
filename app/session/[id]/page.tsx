@@ -91,7 +91,14 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       const res = await fetch(`${apiUrl}/api/sessions/${sessionId}/state`, { signal: AbortSignal.timeout(3000) })
       if (res.ok) {
         const data = await res.json()
-        setState(data)
+        // Coerce Prisma Decimal strings to numbers before setting state
+        setState({
+          status: data.status,
+          spent: Number(data.spent ?? 0),
+          budget: Number(data.budget ?? budgetParam),
+          dataPoints: Number(data.dataPoints ?? 0),
+          duration: Number(data.duration ?? 0),
+        })
         setApiOnline(true)
         return
       }
@@ -205,10 +212,10 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
-            { label: 'Spent',       value: `$${state.spent.toFixed(6)}`,        color: C.accent  },
-            { label: 'Budget',      value: `$${state.budget.toFixed(2)}`,        color: C.primary },
-            { label: 'Data points', value: state.dataPoints.toLocaleString(),    color: C.primary },
-            { label: 'Duration',    value: formatDuration(state.duration),       color: C.primary },
+            { label: 'Spent',       value: `$${Number(state.spent).toFixed(6)}`,        color: C.accent  },
+            { label: 'Budget',      value: `$${Number(state.budget).toFixed(2)}`,        color: C.primary },
+            { label: 'Data points', value: state.dataPoints.toLocaleString(),            color: C.primary },
+            { label: 'Duration',    value: formatDuration(Number(state.duration)),       color: C.primary },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -232,7 +239,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.muted, marginTop: 8 }}>
             <span>$0</span>
             <span style={{ color: C.success }}>🔐 Payments hidden via Confidential Tokens</span>
-            <span>${state.budget.toFixed(2)}</span>
+            <span>${Number(state.budget).toFixed(2)}</span>
           </div>
         </motion.div>
 
