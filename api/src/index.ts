@@ -8,7 +8,7 @@ import sessionRoutes from './routes/sessions'
 const app = express()
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => callback(null, true),
   credentials: true,
 }))
 app.use(express.json())
