@@ -224,7 +224,7 @@ router.post('/:sessionId/close', async (req, res) => {
     res.json({ success: true, hash, spent: finalSpent })
   } catch (err: any) {
     console.error('[Sessions] Settlement error:', err.message)
-    res.status(500).json({ error: 'Settlement failed. Check SETTLEMENT_RELAYER_SECRET env var.' })
+    res.status(500).json({ error: 'Settlement could not be completed. Please try again in a moment.' })
   }
 })
 

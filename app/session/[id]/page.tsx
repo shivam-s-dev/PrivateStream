@@ -141,7 +141,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         })
         const data = await res.json()
         if (!res.ok) {
-          setError(data.error || 'Settlement failed. Check SETTLEMENT_RELAYER_SECRET env var.')
+          setError(data.error || 'Settlement could not be completed. Please try again.')
           return
         }
         setSettlementHash(data.hash)
