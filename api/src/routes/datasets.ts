@@ -26,13 +26,19 @@ router.get('/', async (req, res) => {
       include: {
         provider: {
           select: { displayName: true, walletAddress: true }
+        },
+        _count: {
+          select: { sessions: true }
         }
       },
       orderBy: { totalEarned: 'desc' }
     })
 
     // Never expose endpointUrl in list response
-    const safe = datasets.map(({ endpointUrl, ...d }: any) => d)
+    const safe = datasets.map(({ endpointUrl, _count, ...d }: any) => ({
+      ...d,
+      totalSessions: _count.sessions
+    }))
     
     try {
       await redis.setex(cacheKey, 300, JSON.stringify(safe))
