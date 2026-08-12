@@ -256,6 +256,42 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           </div>
         </motion.div>
 
+        {/* ── YOUR STREAMING ENDPOINT ── */}
+        {sessionId && state.status === 'OPEN' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            style={{ background: C.surface, border: `1px solid ${C.accent}40`, borderRadius: 14, padding: 20, marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 16 }}>🔗</span>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>Your Authorized Streaming Endpoint</h3>
+            </div>
+            <p style={{ fontSize: 12, color: C.secondary, marginBottom: 12, lineHeight: 1.6 }}>
+              Use this URI in your app or scripts to fetch real-time data. Every call deducts from your budget at the dataset&apos;s rate.
+            </p>
+            <div style={{ background: C.elevated, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+              <code style={{ fontSize: 12, color: '#9088FF', wordBreak: 'break-all', flex: 1, fontFamily: 'monospace' }}>
+                {apiUrl}/api/sessions/{sessionId}/stream
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${apiUrl}/api/sessions/${sessionId}/stream`)
+                  const btn = document.getElementById('copy-uri-btn')
+                  if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { if (btn) btn.textContent = 'Copy URI' }, 2000) }
+                }}
+                id="copy-uri-btn"
+                style={{ fontSize: 12, color: C.primary, background: `${C.accent}25`, border: `1px solid ${C.accent}40`, borderRadius: 6, padding: '5px 12px', cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}
+              >
+                Copy URI
+              </button>
+            </div>
+            <div style={{ background: '#0A0A16', border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px' }}>
+              <p style={{ fontSize: 10, color: C.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>curl example</p>
+              <code style={{ fontSize: 11, color: C.success, wordBreak: 'break-all', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                {`curl "${apiUrl}/api/sessions/${sessionId}/stream"`}
+              </code>
+            </div>
+          </motion.div>
+        )}
+
         {/* Privacy note */}
         <div style={{ background: `${C.accent}0E`, border: `1px solid ${C.accent}28`, borderRadius: 14, padding: 16, marginBottom: 22, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 20, flexShrink: 0 }}>🔐</span>
