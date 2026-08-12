@@ -2,7 +2,6 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { redis } from '../services/redis'
-import { requireAuth } from '../middleware/auth'
 
 const router = Router()
 
@@ -42,12 +41,22 @@ const CreateDatasetSchema = z.object({
   pricePerSecond: z.number().min(0.000001).max(10),
   endpointUrl: z.string().url(),
   tags: z.array(z.string()).max(10).default([]),
+  walletAddress: z.string(),
 })
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const body = CreateDatasetSchema.parse(req.body)
-    const user = req.user!  // set by requireAuth middleware
+    
+    // Find or create user
+    let user = await prisma.user.findUnique({
+      where: { walletAddress: body.walletAddress }
+    })
+    if (!user) {
+      user = await prisma.user.create({
+        data: { walletAddress: body.walletAddress, displayName: 'Anonymous Provider' }
+      })
+    }
 
     // Hash the endpoint URL before storing (never expose raw URL)
     const crypto = await import('crypto')

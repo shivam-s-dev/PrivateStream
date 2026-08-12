@@ -130,6 +130,9 @@ export default function DashboardPage() {
             <span style={{ fontSize: 11, color: apiOnline ? '#22D3A0' : '#FBBF24', background: apiOnline ? 'rgba(34,211,160,0.1)' : 'rgba(251,191,36,0.1)', border: `1px solid ${apiOnline ? 'rgba(34,211,160,0.25)' : 'rgba(251,191,36,0.25)'}`, padding: '3px 10px', borderRadius: 99 }}>
               {apiOnline ? '● API Live' : '○ API Offline'}
             </span>
+            <Link href="/dataset/create" style={{ padding: '8px 18px', fontSize: 14, color: '#9898BB', border: '1px solid #2C2C45', borderRadius: 8, transition: 'all 0.2s' }} className="hover:bg-[#1A1A2B] hover:text-[#EEEEFF]">
+              List Dataset
+            </Link>
             <Link href="/explore" className="btn-primary" style={{ padding: '8px 18px', fontSize: 14 }}>
               + Open Session
             </Link>
