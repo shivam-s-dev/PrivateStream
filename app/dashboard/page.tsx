@@ -81,7 +81,8 @@ export default function DashboardPage() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
         const res = await fetch(`${apiUrl}/api/sessions?walletAddress=${publicKey}`, {
-          signal: AbortSignal.timeout(4000)
+          signal: AbortSignal.timeout(4000),
+          cache: 'no-store'
         })
         if (res.ok) {
           setSessions(await res.json())
@@ -244,8 +245,8 @@ export default function DashboardPage() {
                   <p className="address" style={{ marginTop: 2, fontSize: 11 }}>{s.id.slice(0, 8)}… · {new Date(s.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: 14, fontFamily: 'monospace', color: '#EEEEFF' }}>${(s.spentUsdc ?? 0).toFixed(6)}</p>
-                  <p style={{ fontSize: 11, color: '#5A5A7A' }}>of ${s.budgetUsdc} budget</p>
+                  <p style={{ fontSize: 14, fontFamily: 'monospace', color: '#EEEEFF' }}>${Number(s.spentUsdc ?? 0).toFixed(6)}</p>
+                  <p style={{ fontSize: 11, color: '#5A5A7A' }}>of ${Number(s.budgetUsdc).toFixed(4)} budget</p>
                 </div>
                 <span className={`badge ${STATUS_STYLE[s.status] ?? 'badge-muted'}`}>{s.status}</span>
                 {s.status === 'OPEN' && (
