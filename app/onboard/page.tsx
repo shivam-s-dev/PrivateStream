@@ -37,7 +37,7 @@ export default function OnboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, walletAddress: publicKey }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(25000), // Increased from 5s to 25s because Soroban TXs can take 10s+
       })
       if (!res.ok) throw new Error(await res.text())
       setSubmitted(true)
