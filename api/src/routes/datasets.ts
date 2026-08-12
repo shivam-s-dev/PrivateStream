@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
   const cacheKey = `datasets:list:${req.query.category || 'all'}`
   const cached = await redis.get(cacheKey)
   if (cached) {
-    res.json(JSON.parse(cached))
+    res.json(cached)
     return
   }
 
@@ -75,6 +75,22 @@ router.post('/', requireAuth, async (req, res) => {
   } catch (error) {
     res.status(400).json({ error })
   }
+})
+
+// GET /datasets/:id — single dataset detail (never exposes endpointUrl)
+router.get('/:id', async (req, res) => {
+  const dataset = await prisma.dataset.findUnique({
+    where: { id: req.params.id, isActive: true },
+    include: {
+      provider: { select: { displayName: true, walletAddress: true } }
+    }
+  })
+  if (!dataset) {
+    res.status(404).json({ error: 'Dataset not found' })
+    return
+  }
+  const { endpointUrl, ...safe } = dataset as any
+  res.json(safe)
 })
 
 export default router

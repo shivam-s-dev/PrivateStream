@@ -1,29 +1,20 @@
 import 'dotenv/config'
+import { Redis } from '@upstash/redis'
 
-// Minimal mock to prevent API crashes when Redis isn't running
-export const redis = {
-  get: async (key: string) => null,
-  setex: async (key: string, ttl: number, val: string) => "OK",
-  pipeline: () => ({
-    incr: () => {},
-    expire: () => {},
-    exec: async () => [[null, 1]]
-  }),
-  on: (event: string, handler: any) => {}
-} as any
+// Real Upstash Redis client using REST API (works on both local and Render)
+export const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+})
 
-// Helper: atomic increment with expiry
+// Expose a compatible del() method (Upstash SDK uses .del())
 export async function incrementWithExpiry(key: string, ttl: number) {
-  const pipeline = redis.pipeline()
-  pipeline.incr(key)
-  pipeline.expire(key, ttl)
-  const results = await pipeline.exec()
-  return results?.[0]?.[1] as number
+  const count = await redis.incr(key)
+  await redis.expire(key, ttl)
+  return count
 }
 
-// Helper: rate limiting
 export async function checkRateLimit(ip: string, limit = 60): Promise<boolean> {
-  const key = `rate:${ip}`
-  const count = await incrementWithExpiry(key, 60)
+  const count = await incrementWithExpiry(`rate:${ip}`, 60)
   return count <= limit
 }

@@ -22,7 +22,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-here') as any
+    const jwtSecret = process.env.JWT_SECRET
+    if (!jwtSecret) throw new Error('JWT_SECRET env variable is not set')
+    const payload = jwt.verify(token, jwtSecret) as any
     const user = await prisma.user.findUnique({
       where: { walletAddress: payload.walletAddress }
     })
