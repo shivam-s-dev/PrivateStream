@@ -62,18 +62,22 @@ router.post('/open', async (req, res) => {
   })
 
   // Seed Redis with initial state so the /state endpoint works immediately
-  await redis.setex(
-    `session:${session.id}:state`,
-    3600,
-    {
-      status: 'OPEN',
-      spent: 0,
-      budget: Number(budgetUsdc),
-      dataPoints: 0,
-      duration: 0,
-      openedAt: Date.now(),
-    }
-  )
+  try {
+    await redis.setex(
+      `session:${session.id}:state`,
+      3600,
+      {
+        status: 'OPEN',
+        spent: 0,
+        budget: Number(budgetUsdc),
+        dataPoints: 0,
+        duration: 0,
+        openedAt: Date.now(),
+      }
+    )
+  } catch (e) {
+    console.error('[Redis] Failed to seed session state:', e)
+  }
 
   res.json({
     sessionId: session.id,
@@ -87,7 +91,12 @@ router.post('/open', async (req, res) => {
 router.get('/:sessionId/state', async (req, res) => {
   const sessionId = req.params.sessionId
 
-  const state = await redis.get(`session:${sessionId}:state`)
+  let state = null
+  try {
+    state = await redis.get(`session:${sessionId}:state`)
+  } catch (e) {
+    console.error('[Redis] Failed to get session state:', e)
+  }
   if (state) {
     res.json(state)
     return
@@ -115,7 +124,12 @@ router.get('/:sessionId/state', async (req, res) => {
 router.get('/:sessionId/stream', async (req, res) => {
   const sessionId = req.params.sessionId
 
-  const stateRaw = await redis.get(`session:${sessionId}:state`)
+  let stateRaw = null
+  try {
+    stateRaw = await redis.get(`session:${sessionId}:state`)
+  } catch (e) {
+    console.error('[Redis] Failed to get session stream state:', e)
+  }
   if (!stateRaw) {
     res.status(404).json({ error: 'Session not found or expired' })
     return
@@ -150,7 +164,11 @@ router.get('/:sessionId/stream', async (req, res) => {
     const newDataPoints = (state.dataPoints ?? 0) + 1
     const newDuration = (state.duration ?? 0) + 2
     const newState = { ...state, spent: newSpent, dataPoints: newDataPoints, duration: newDuration }
-    await redis.set(`session:${sessionId}:state`, JSON.stringify(newState))
+    try {
+      await redis.set(`session:${sessionId}:state`, JSON.stringify(newState))
+    } catch (e) {
+      console.error('[Redis] Failed to update session spend:', e)
+    }
 
     res.json(json)
   } catch {
@@ -175,7 +193,12 @@ router.post('/:sessionId/close', async (req, res) => {
 
   // Use Redis spent amount if available, otherwise use client-reported amount
   let finalSpent = spentFromClient
-  const stateRaw = await redis.get(`session:${sessionId}:state`)
+  let stateRaw = null
+  try {
+    stateRaw = await redis.get(`session:${sessionId}:state`)
+  } catch (e) {
+    console.error('[Redis] Failed to get final session state:', e)
+  }
   if (stateRaw) {
     const state = stateRaw as any
     finalSpent = state.spent ?? spentFromClient
@@ -188,7 +211,11 @@ router.post('/:sessionId/close', async (req, res) => {
   })
 
   // Clear Redis session state
-  await redis.del(`session:${sessionId}:state`)
+  try {
+    await redis.del(`session:${sessionId}:state`)
+  } catch (e) {
+    console.error('[Redis] Failed to clear session state:', e)
+  }
 
   // Submit real on-chain settlement transaction
   try {
