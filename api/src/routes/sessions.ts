@@ -111,9 +111,9 @@ router.get('/:sessionId/state', async (req, res) => {
 
   res.json({
     status: session.status,
-    spent: session.spentUsdc ?? 0,
-    budget: session.budgetUsdc,
-    dataPoints: 0,
+    spent: Number(session.spentUsdc ?? 0),
+    budget: Number(session.budgetUsdc),
+    dataPoints: session.dataPoints ?? 0,
     duration: session.closedAt
       ? Math.floor((session.closedAt.getTime() - session.openedAt.getTime()) / 1000)
       : Math.floor((Date.now() - session.openedAt.getTime()) / 1000),
@@ -124,28 +124,7 @@ router.get('/:sessionId/state', async (req, res) => {
 router.get('/:sessionId/stream', async (req, res) => {
   const sessionId = req.params.sessionId
 
-  let stateRaw = null
-  try {
-    stateRaw = await redis.get(`session:${sessionId}:state`)
-  } catch (e) {
-    console.error('[Redis] Failed to get session stream state:', e)
-  }
-  if (!stateRaw) {
-    res.status(404).json({ error: 'Session not found or expired' })
-    return
-  }
-
-  const state = stateRaw as any
-  if (state.status === 'CLOSED') {
-    res.status(402).json({ error: 'Session is closed' })
-    return
-  }
-
-  if (state.spent >= state.budget) {
-    res.status(402).json({ error: 'Budget exhausted', spent: state.spent })
-    return
-  }
-
+  // Load session + dataset directly from DB (primary source of truth)
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: { dataset: true }
@@ -154,25 +133,50 @@ router.get('/:sessionId/stream', async (req, res) => {
     res.status(404).json({ error: 'Session not found' })
     return
   }
+  if (session.status === 'CLOSED') {
+    res.status(402).json({ error: 'Session is closed' })
+    return
+  }
+
+  const spent = Number(session.spentUsdc ?? 0)
+  const budget = Number(session.budgetUsdc)
+  if (spent >= budget) {
+    res.status(402).json({ error: 'Budget exhausted', spent })
+    return
+  }
 
   try {
-    const data = await fetch(session.dataset.endpointUrl, { signal: AbortSignal.timeout(3000) })
-    const json = await data.json()
+    // Fetch real data from the provider's endpoint
+    const dataRes = await fetch(session.dataset.endpointUrl, { signal: AbortSignal.timeout(4000) })
+    const json = await dataRes.json()
 
-    // Update spend in Redis (price ticks per poll)
-    const newSpent = Math.min(state.spent + session.dataset.pricePerSecond.toNumber() * 2, Number(state.budget))
-    const newDataPoints = (state.dataPoints ?? 0) + 1
-    const newDuration = (state.duration ?? 0) + 2
-    const newState = { ...state, spent: newSpent, dataPoints: newDataPoints, duration: newDuration }
+    // Calculate new spend (price per second × 2s tick interval)
+    const pricePerTick = session.dataset.pricePerSecond.toNumber() * 2
+    const newSpent = Math.min(spent + pricePerTick, budget)
+    const newDataPoints = (session.dataPoints ?? 0) + 1
+    const duration = Math.floor((Date.now() - session.openedAt.getTime()) / 1000)
+
+    // Update DB directly — works even when Redis is unavailable
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        spentUsdc: newSpent,
+        dataPoints: newDataPoints,
+      }
+    })
+
+    // Also try to update Redis cache (optional, best-effort)
     try {
-      await redis.set(`session:${sessionId}:state`, JSON.stringify(newState))
-    } catch (e) {
-      console.error('[Redis] Failed to update session spend:', e)
-    }
+      await redis.set(`session:${sessionId}:state`, JSON.stringify({
+        status: 'OPEN', spent: newSpent, budget, dataPoints: newDataPoints, duration
+      }))
+    } catch { /* Redis unavailable — DB is source of truth */ }
 
     res.json(json)
   } catch {
     res.status(500).json({ error: 'Failed to fetch from provider endpoint' })
+  }
+
   }
 })
 
