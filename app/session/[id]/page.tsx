@@ -1,9 +1,11 @@
 'use client'
 import { useEffect, useState, useCallback, use } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ConnectWalletButton } from '../../../components/ConnectWalletButton'
+import { useWallet } from '../../../components/WalletContext'
 
 const C = {
   base: '#08080E', surface: '#0F0F1A', elevated: '#17172A',
@@ -20,8 +22,6 @@ type SessionState = {
   duration: number
 }
 
-const INITIAL: SessionState = { status: 'OPEN', spent: 0, budget: 1.0, dataPoints: 0, duration: 0 }
-
 function formatDuration(seconds: number) {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
@@ -33,21 +33,75 @@ function formatDuration(seconds: number) {
 
 export default function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [state, setState] = useState<SessionState>(INITIAL)
+  const searchParams = useSearchParams()
+  const budgetParam = parseFloat(searchParams.get('budget') ?? '1.00')
+  const datasetId = searchParams.get('datasetId') ?? id
+
+  const { publicKey } = useWallet()
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [openingSession, setOpeningSession] = useState(false)
+  const [state, setState] = useState<SessionState>({ status: 'OPEN', spent: 0, budget: budgetParam, dataPoints: 0, duration: 0 })
   const [apiOnline, setApiOnline] = useState(false)
   const [closing, setClosing] = useState(false)
   const [settlementHash, setSettlementHash] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+
+  // Step 1: Open session via API on mount (if wallet connected and no session yet)
+  useEffect(() => {
+    if (!publicKey || sessionId || openingSession) return
+
+    // If the URL ID looks like a real Prisma CUID, use it directly (came from dashboard)
+    if (id.length > 20 && !id.includes('-')) {
+      setSessionId(id)
+      return
+    }
+
+    async function openSession() {
+      setOpeningSession(true)
+      try {
+        const res = await fetch(`${apiUrl}/api/sessions/open`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ datasetId, budgetUsdc: budgetParam, walletAddress: publicKey }),
+          signal: AbortSignal.timeout(8000)
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setSessionId(data.sessionId)
+          setApiOnline(true)
+        } else {
+          setError('Could not open session via API. Is the API server running?')
+          setSessionId(id) // use dataset id as fallback so UI doesn't block
+        }
+      } catch {
+        setError('API offline — session running in local mode. Settlement will not be possible.')
+        setSessionId(id)
+        setApiOnline(false)
+      } finally {
+        setOpeningSession(false)
+      }
+    }
+
+    openSession()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicKey])
+
+  // Step 2: Poll /state every 2s once we have a session ID
   const poll = useCallback(async () => {
+    if (!sessionId) return
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-      const res = await fetch(`${apiUrl}/api/sessions/${id}/state`, { signal: AbortSignal.timeout(2000) })
+      const res = await fetch(`${apiUrl}/api/sessions/${sessionId}/state`, { signal: AbortSignal.timeout(3000) })
       if (res.ok) {
-        setState(await res.json())
+        const data = await res.json()
+        setState(data)
         setApiOnline(true)
         return
       }
-    } catch { /* API offline */ }
+    } catch { /* fall through */ }
+
+    // Offline simulation (only increments if API couldn't be reached)
     setApiOnline(false)
     setState(prev => {
       if (prev.status === 'CLOSED') return prev
@@ -60,26 +114,38 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         status: newSpent >= prev.budget ? 'CLOSED' : 'OPEN',
       }
     })
-  }, [id])
+  }, [sessionId, apiUrl])
 
   useEffect(() => {
+    if (!sessionId) return
     poll()
     const iv = setInterval(poll, 2000)
     return () => clearInterval(iv)
-  }, [poll])
+  }, [poll, sessionId])
 
+  // Step 3: Close & settle
   async function handleClose() {
+    if (!sessionId) return
     setClosing(true)
+    setError(null)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
       if (apiOnline) {
-        await fetch(`${apiUrl}/api/sessions/${id}/close`, { method: 'POST', signal: AbortSignal.timeout(5000) })
+        const res = await fetch(`${apiUrl}/api/sessions/${sessionId}/close`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spent: state.spent, walletAddress: publicKey }),
+          signal: AbortSignal.timeout(20000) // Stellar consensus can take ~5s
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error || 'Settlement failed. Check SETTLEMENT_RELAYER_SECRET env var.')
+          return
+        }
+        setSettlementHash(data.hash)
+      } else {
+        setError('The PrivateStream API is offline. Start it with: cd api && npm run dev')
+        return
       }
-      
-      // Simulate generating a Stellar transaction hash upon closing
-      const mockHash = Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')
-      setSettlementHash(mockHash)
-      
       setState(prev => ({ ...prev, status: 'CLOSED' }))
     } finally {
       setClosing(false)
@@ -88,6 +154,16 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
 
   const budgetPct = state.budget > 0 ? (state.spent / state.budget) * 100 : 0
   const barColor = budgetPct > 80 ? C.danger : budgetPct > 60 ? C.warning : C.accent
+  const displayId = sessionId ?? id
+
+  if (openingSession) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <div style={{ width: 36, height: 36, border: `3px solid ${C.border}`, borderTopColor: C.accent, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ color: C.secondary, fontSize: 14 }}>Opening session on PrivateStream API…</p>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: C.base, color: C.primary }}>
@@ -108,13 +184,16 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-7">
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: C.primary }}>Live Session</h1>
-            <p style={{ fontFamily: 'monospace', fontSize: 12, color: C.muted, marginTop: 4 }}>{id}</p>
+            <p style={{ fontFamily: 'monospace', fontSize: 12, color: C.muted, marginTop: 4 }}>{displayId}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-
+            {/* API status badge */}
+            <span style={{ fontSize: 11, color: apiOnline ? C.success : C.warning, background: apiOnline ? `${C.success}15` : `${C.warning}15`, border: `1px solid ${apiOnline ? C.success : C.warning}30`, padding: '3px 10px', borderRadius: 99 }}>
+              {apiOnline ? '● API Live' : '○ API Offline (simulated)'}
+            </span>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '5px 14px', borderRadius: 99,
               background: state.status === 'OPEN' ? `${C.success}15` : `${C.muted}20`,
@@ -128,7 +207,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         </motion.div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: 'Spent',       value: `$${state.spent.toFixed(6)}`,        color: C.accent  },
             { label: 'Budget',      value: `$${state.budget.toFixed(2)}`,        color: C.primary },
@@ -170,6 +249,13 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
 
+        {/* Error */}
+        {error && (
+          <div style={{ background: `${C.danger}10`, border: `1px solid ${C.danger}30`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.danger }}>
+            ⚠️ {error}
+          </div>
+        )}
+
         {/* Close / Settled */}
         {state.status === 'OPEN' && (
           <motion.button onClick={handleClose} disabled={closing} whileTap={{ scale: 0.97 }}
@@ -182,32 +268,33 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
             }}>
             {closing ? <>
               <span style={{ width: 16, height: 16, border: `2px solid ${C.danger}40`, borderTopColor: C.danger, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-              Settling on Stellar...
+              Settling on Stellar… (waiting for network)
             </> : 'Close session & settle'}
           </motion.button>
         )}
+
         {state.status === 'CLOSED' && (
           <div style={{ textAlign: 'center', padding: '28px 0' }}>
             {settlementHash && (
               <div style={{ marginBottom: 24, padding: '20px', background: `${C.success}10`, border: `1px solid ${C.success}30`, borderRadius: 16, textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <span style={{ fontSize: 20 }}>✅</span>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: C.success }}>Settlement Successful</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: C.success }}>Settlement Confirmed on Stellar Testnet</h3>
                 </div>
-                <p style={{ fontSize: 14, color: C.secondary, marginBottom: 16 }}>
-                  The streaming micropayments have been settled on the Stellar network.
+                <p style={{ fontSize: 13, color: C.secondary, marginBottom: 16, lineHeight: 1.5 }}>
+                  A real transaction was submitted to the Stellar Testnet. The memo field contains your session ID for auditing.
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: C.elevated, padding: '12px 16px', borderRadius: 10, border: `1px solid ${C.border}` }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 13, color: C.muted }}>
-                    {settlementHash.substring(0, 10)}...{settlementHash.substring(54)}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: C.elevated, padding: '12px 16px', borderRadius: 10, border: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 8 }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: C.muted, wordBreak: 'break-all' }}>
+                    {settlementHash}
                   </span>
-                  <a 
-                    href={`https://stellar.expert/explorer/testnet/tx/${settlementHash}`} 
-                    target="_blank" 
+                  <a
+                    href={`https://stellar.expert/explorer/testnet/tx/${settlementHash}`}
+                    target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    style={{ fontSize: 13, color: C.accent, textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
                   >
-                    View on Explorer ↗
+                    View on Stellar Expert ↗
                   </a>
                 </div>
               </div>

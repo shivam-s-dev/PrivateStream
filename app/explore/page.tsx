@@ -20,7 +20,7 @@ const MOCK_DATASETS: Dataset[] = [
 
 async function fetchDatasets(): Promise<Dataset[]> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-  const res = await fetch(`${apiUrl}/api/datasets`, { signal: AbortSignal.timeout(3000) })
+  const res = await fetch(`${apiUrl}/api/datasets`, { signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error('API offline')
   return res.json()
 }
@@ -32,10 +32,10 @@ export default function ExplorePage() {
   const { data: apiDatasets, isLoading, isError } = useQuery({
     queryKey: ['datasets'],
     queryFn: fetchDatasets,
-    retry: false,
+    retry: 1,
   })
 
-  const datasets = isError || !apiDatasets ? MOCK_DATASETS : apiDatasets
+  const datasets = apiDatasets ?? []
 
   const filtered = datasets.filter(d => {
     const matchCat = activeCategory === 'All' || d.category === activeCategory
