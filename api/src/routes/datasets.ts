@@ -130,4 +130,40 @@ router.get('/:id', async (req, res) => {
   res.json(safe)
 })
 
+// GET /datasets/:id/stats — provider-only monitoring endpoint
+router.get('/:id/stats', async (req, res) => {
+  const { walletAddress } = req.query
+  if (!walletAddress || typeof walletAddress !== 'string') {
+    res.status(400).json({ error: 'walletAddress query param required' })
+    return
+  }
+  const dataset = await prisma.dataset.findUnique({
+    where: { id: req.params.id },
+    include: { provider: { select: { walletAddress: true } } }
+  })
+  if (!dataset) { res.status(404).json({ error: 'Dataset not found' }); return }
+  if (dataset.provider.walletAddress !== walletAddress) {
+    res.status(403).json({ error: 'Forbidden' }); return
+  }
+  const sessions = await prisma.session.findMany({
+    where: { datasetId: req.params.id },
+    orderBy: { openedAt: 'desc' },
+    take: 10,
+    select: { id: true, status: true, budgetUsdc: true, spentUsdc: true, openedAt: true, closedAt: true }
+  })
+  const activeSessions = sessions.filter(s => s.status === 'OPEN').length
+  let liveSample = null
+  try {
+    const r = await fetch(dataset.endpointUrl, { signal: AbortSignal.timeout(3000) })
+    liveSample = await r.json()
+  } catch { liveSample = null }
+  res.json({
+    totalEarned: dataset.totalEarned,
+    totalSessions: dataset.totalSessions,
+    activeSessions,
+    recentSessions: sessions,
+    liveSample,
+  })
+})
+
 export default router

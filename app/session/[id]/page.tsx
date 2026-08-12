@@ -45,6 +45,8 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   const [closing, setClosing] = useState(false)
   const [settlementHash, setSettlementHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [streamData, setStreamData] = useState<any>(null)
+  const [streamTitle, setStreamTitle] = useState<string>('')
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
@@ -65,6 +67,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         if (res.ok) {
           const data = await res.json()
           setSessionId(data.sessionId)
+          setStreamTitle(data.datasetTitle || 'Data Stream')
           setApiOnline(true)
         } else {
           const errData = await res.json().catch(() => ({}))
@@ -88,10 +91,20 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   const poll = useCallback(async () => {
     if (!sessionId) return
     try {
-      const res = await fetch(`${apiUrl}/api/sessions/${sessionId}/state`, { signal: AbortSignal.timeout(3000) })
-      if (res.ok) {
-        const data = await res.json()
-        // Coerce Prisma Decimal strings to numbers before setting state
+      // Call /stream — this fetches real data from the provider AND ticks the spend counter in Redis
+      const streamRes = await fetch(`${apiUrl}/api/sessions/${sessionId}/stream`, { signal: AbortSignal.timeout(4000) })
+      if (streamRes.ok) {
+        const data = await streamRes.json()
+        setStreamData(data)
+        setApiOnline(true)
+      }
+    } catch { /* stream fetch failed, still try state */ }
+
+    // Always also poll /state to get accurate spend/duration figures
+    try {
+      const stateRes = await fetch(`${apiUrl}/api/sessions/${sessionId}/state`, { signal: AbortSignal.timeout(3000) })
+      if (stateRes.ok) {
+        const data = await stateRes.json()
         setState({
           status: data.status,
           spent: Number(data.spent ?? 0),
@@ -102,9 +115,9 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         setApiOnline(true)
         return
       }
-    } catch { /* fall through */ }
+    } catch { /* fall through to simulation */ }
 
-    // Offline simulation (only increments if API couldn't be reached)
+    // Offline fallback simulation
     setApiOnline(false)
     setState(prev => {
       if (prev.status === 'CLOSED') return prev
@@ -112,12 +125,12 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       return {
         ...prev,
         spent: newSpent,
-        dataPoints: prev.dataPoints + Math.floor(Math.random() * 3 + 1),
+        dataPoints: prev.dataPoints + 1,
         duration: prev.duration + 2,
         status: newSpent >= prev.budget ? 'CLOSED' : 'OPEN',
       }
     })
-  }, [sessionId, apiUrl])
+  }, [sessionId, apiUrl, budgetParam])
 
   useEffect(() => {
     if (!sessionId) return
@@ -251,6 +264,36 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
             <p style={{ fontSize: 12, color: C.secondary, lineHeight: 1.5 }}>Amount hidden on-chain via Pedersen commitments. Wallet addresses visible. Compliant with auditor key.</p>
           </div>
         </div>
+
+        {/* ── LIVE DATA FEED — what the buyer is actually streaming ── */}
+        {state.status === 'OPEN' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: apiOnline ? C.success : C.muted, display: 'inline-block', animation: apiOnline ? 'pulse 1.5s infinite' : 'none' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.primary }}>
+                  {streamTitle || 'Live Data Stream'}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, color: C.muted, fontFamily: 'monospace' }}>
+                {state.dataPoints} records received · refreshes every 2s
+              </span>
+            </div>
+            <div style={{ padding: 16, minHeight: 120 }}>
+              {streamData ? (
+                <pre style={{ margin: 0, fontSize: 11, color: C.secondary, overflowX: 'auto', maxHeight: 260, overflowY: 'auto', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {JSON.stringify(streamData, null, 2).slice(0, 2000)}
+                </pre>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 100, gap: 10, color: C.muted, fontSize: 13 }}>
+                  <div style={{ width: 16, height: 16, border: `2px solid ${C.border}`, borderTopColor: C.accent, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  Fetching first data packet…
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Error */}
         {error && (
