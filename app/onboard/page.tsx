@@ -44,7 +44,7 @@ export default function OnboardPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to submit'
       if (msg.includes('Failed to fetch') || msg.includes('signal')) {
-        setError('API server not running. Start it with: cd api && npm run dev')
+        setError('Could not connect to PrivateStream API. Please try again in a moment.')
       } else {
         setError(msg)
       }

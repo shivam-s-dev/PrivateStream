@@ -52,12 +52,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     if (!publicKey || sessionId || openingSession) return
 
-    // If the URL ID looks like a real Prisma CUID, use it directly (came from dashboard)
-    if (id.length > 20 && !id.includes('-')) {
-      setSessionId(id)
-      return
-    }
-
+    // If the URL ID looks like an existing session CUID, verify it via API directly
     async function openSession() {
       setOpeningSession(true)
       try {
@@ -65,18 +60,19 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ datasetId, budgetUsdc: budgetParam, walletAddress: publicKey }),
-          signal: AbortSignal.timeout(8000)
+          signal: AbortSignal.timeout(10000)
         })
         if (res.ok) {
           const data = await res.json()
           setSessionId(data.sessionId)
           setApiOnline(true)
         } else {
-          setError('Could not open session via API. Is the API server running?')
-          setSessionId(id) // use dataset id as fallback so UI doesn't block
+          const errData = await res.json().catch(() => ({}))
+          setError(errData.error || 'Could not open session. Please try again.')
+          setSessionId(id)
         }
       } catch {
-        setError('API offline — session running in local mode. Settlement will not be possible.')
+        setError('Could not connect to PrivateStream API. Please check your connection and try again.')
         setSessionId(id)
         setApiOnline(false)
       } finally {
@@ -143,7 +139,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         }
         setSettlementHash(data.hash)
       } else {
-        setError('The PrivateStream API is offline. Start it with: cd api && npm run dev')
+        setError('Cannot settle: connection to PrivateStream API was lost. Please refresh and try again.')
         return
       }
       setState(prev => ({ ...prev, status: 'CLOSED' }))
