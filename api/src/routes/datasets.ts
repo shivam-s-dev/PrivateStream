@@ -148,20 +148,25 @@ router.get('/:id/stats', async (req, res) => {
   const sessions = await prisma.session.findMany({
     where: { datasetId: req.params.id },
     orderBy: { openedAt: 'desc' },
-    take: 10,
     select: { id: true, status: true, budgetUsdc: true, spentUsdc: true, openedAt: true, closedAt: true }
   })
+  
   const activeSessions = sessions.filter(s => s.status === 'OPEN').length
+  const totalSessions = sessions.length
+  // Sum up all spentUsdc for this dataset
+  const totalEarned = sessions.reduce((sum, s) => sum + Number(s.spentUsdc ?? 0), 0)
+  
   let liveSample = null
   try {
     const r = await fetch(dataset.endpointUrl, { signal: AbortSignal.timeout(3000) })
     liveSample = await r.json()
   } catch { liveSample = null }
+
   res.json({
-    totalEarned: dataset.totalEarned,
-    totalSessions: dataset.totalSessions,
+    totalEarned,
+    totalSessions,
     activeSessions,
-    recentSessions: sessions,
+    recentSessions: sessions.slice(0, 10), // Only return the 10 most recent to the frontend
     liveSample,
   })
 })
