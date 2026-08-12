@@ -71,7 +71,7 @@ export default function OnboardPage() {
 
           {/* Role selector */}
           {!role && (
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {[
                 { id: 'buyer', icon: '📊', title: "I'm a Buyer", desc: 'Browse datasets and stream data with micro-payments.' },
                 { id: 'provider', icon: '🏢', title: "I'm a Provider", desc: 'List your dataset endpoint and earn USDC per second.' },
@@ -137,7 +137,7 @@ export default function OnboardPage() {
                     <label className="block text-xs text-muted mb-1.5 uppercase tracking-widest">Description</label>
                     <textarea className="input resize-none h-24" required placeholder="What data do you provide? Format, freshness, use cases..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} id="dataset-desc" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs text-muted mb-1.5 uppercase tracking-widest">Category</label>
                       <select className="input" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} id="dataset-category">

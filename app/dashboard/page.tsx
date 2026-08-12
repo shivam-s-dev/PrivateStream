@@ -92,7 +92,7 @@ export default function DashboardPage() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#EEEEFF', letterSpacing: '-0.02em', marginBottom: 4 }}>Dashboard</h1>
             <p className="address">{publicKey?.slice(0, 14)}...{publicKey?.slice(-10)}</p>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
           {[
             { label: 'Total spent',     value: `$${totalSpent.toFixed(2)}`,    sub: 'USDC (buyer)',    color: '#EEEEFF' },
             { label: 'Sessions opened', value: String(MOCK_SESSIONS.length),   sub: 'all time',        color: '#EEEEFF' },
@@ -118,7 +118,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
 
           {/* Earnings chart */}
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }} className="card">
@@ -188,8 +188,8 @@ export default function DashboardPage() {
           {MOCK_SESSIONS.map((s, i) => (
             <motion.div key={s.id}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.05 }}
-              style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16, borderBottom: i < MOCK_SESSIONS.length - 1 ? '1px solid #17172A' : 'none', transition: 'background 0.15s' }}
-              className="hover-surface"
+              style={{ borderBottom: i < MOCK_SESSIONS.length - 1 ? '1px solid #17172A' : 'none', transition: 'background 0.15s' }}
+              className="p-4 sm:px-5 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 hover-surface"
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 14, fontWeight: 500, color: '#EEEEFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.dataset}</p>

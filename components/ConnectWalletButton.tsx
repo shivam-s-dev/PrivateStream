@@ -6,7 +6,7 @@ export function ConnectWalletButton() {
 
   if (connected && publicKey) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="inline-flex items-center gap-2">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-success/10 border border-success/25">
           <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
           <span className="font-mono text-xs text-success">
@@ -27,7 +27,7 @@ export function ConnectWalletButton() {
     <button
       onClick={connect}
       disabled={connecting}
-      className="btn-primary text-sm px-4 py-2 flex items-center gap-2 disabled:opacity-60"
+      className="btn-primary text-sm px-4 py-2 inline-flex items-center gap-2 disabled:opacity-60"
       id="connect-wallet-btn"
     >
       {connecting ? (

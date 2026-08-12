@@ -119,7 +119,7 @@ export default function LandingPage() {
       </motion.nav>
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1280, margin: '0 auto', padding: '72px 24px 48px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+      <section className="max-w-[1280px] mx-auto px-6 pt-12 pb-12 sm:pt-16 lg:pt-20 lg:pb-16 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
         {/* Left */}
         <div>
@@ -173,7 +173,7 @@ export default function LandingPage() {
 
           {/* Stats */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-            style={{ display: 'flex', gap: 40, marginTop: 48, paddingTop: 32, borderTop: `1px solid ${C.border}` }}>
+            className="flex flex-wrap sm:flex-nowrap gap-6 sm:gap-10 mt-10 sm:mt-12 pt-8" style={{ borderTop: `1px solid ${C.border}` }}>
             {[
               { label: 'Datasets listed',  value: 12,   suffix: '' },
               { label: 'Sessions opened',  value: 347,  suffix: '' },
@@ -272,7 +272,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Feature cards ─────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+      <section className="max-w-[1100px] mx-auto px-6 pb-20 grid grid-cols-1 md:grid-cols-3 gap-5">
         {FEATURES.map((f, i) => (
           <motion.div key={f.title}
             initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.5 }}
@@ -291,9 +291,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA Banner ────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px 96px' }}>
+      <section className="max-w-[800px] mx-auto px-6 pb-24">
         <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          style={{ background: `linear-gradient(135deg, ${C.accent}12, ${C.surface})`, border: `1px solid ${C.accent}30`, borderRadius: 28, padding: '56px 40px', textAlign: 'center' }}>
+          className="p-8 sm:p-14 text-center rounded-[28px]" style={{ background: `linear-gradient(135deg, ${C.accent}12, ${C.surface})`, border: `1px solid ${C.accent}30` }}>
           <p style={{ fontSize: 11, color: C.accentLight, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Built on Stellar Testnet</p>
           <h2 style={{ fontSize: 32, fontWeight: 800, color: C.primary, letterSpacing: '-0.03em', marginBottom: 12 }}>Ready to stream data?</h2>
           <p style={{ color: C.secondary, marginBottom: 32, maxWidth: 400, margin: '0 auto 32px', lineHeight: 1.65 }}>
