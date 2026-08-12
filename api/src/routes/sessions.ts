@@ -176,8 +176,6 @@ router.get('/:sessionId/stream', async (req, res) => {
   } catch {
     res.status(500).json({ error: 'Failed to fetch from provider endpoint' })
   }
-
-  }
 })
 
 // POST /sessions/:id/close — buyer closes a session and triggers real on-chain settlement
