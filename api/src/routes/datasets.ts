@@ -38,7 +38,7 @@ const CreateDatasetSchema = z.object({
     'DEX_ANALYTICS', 'PRICE_FEEDS', 'WALLET_INTELLIGENCE',
     'CREDIT_SCORING', 'ORDERBOOK_DATA', 'COMPLIANCE_DATA', 'CUSTOM'
   ]),
-  pricePerSecond: z.number().min(0.000001).max(10),
+  pricePerSecond: z.coerce.number().min(0.000001).max(10),
   endpointUrl: z.string().url(),
   tags: z.array(z.string()).max(10).default([]),
   walletAddress: z.string(),
