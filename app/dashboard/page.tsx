@@ -64,9 +64,9 @@ type Session = {
   id: string
   dataset: { title: string }
   status: string
-  spentUsdc: number
   budgetUsdc: number
   createdAt: string
+  role: 'BUYER' | 'PROVIDER'
 }
 
 export default function DashboardPage() {
@@ -99,7 +99,11 @@ export default function DashboardPage() {
 
   if (!connected) return <WalletGate />
 
-  const totalSpent    = sessions.reduce((a, s) => a + Number(s.spentUsdc ?? 0), 0)
+  const buyerSessions = sessions.filter(s => s.role === 'BUYER')
+  const providerSessions = sessions.filter(s => s.role === 'PROVIDER')
+
+  const totalSpent    = buyerSessions.reduce((a, s) => a + Number(s.spentUsdc ?? 0), 0)
+  const totalEarnings = providerSessions.reduce((a, s) => a + Number(s.spentUsdc ?? 0), 0)
   const openSessions  = sessions.filter(s => s.status === 'OPEN').length
 
   // Earnings chart — derived from closed sessions by day
@@ -108,12 +112,12 @@ export default function DashboardPage() {
     { day: 'Thu', usdc: 0 }, { day: 'Fri', usdc: 0 }, { day: 'Sat', usdc: 0 }, { day: 'Sun', usdc: 0 },
   ]
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  sessions.forEach(s => {
+  // The chart displays provider earnings over time
+  providerSessions.forEach(s => {
     const day = days[new Date(s.createdAt).getDay()]
     const entry = earningsData.find(e => e.day === day)
     if (entry) entry.usdc += Number(s.spentUsdc ?? 0)
   })
-  const totalEarnings = earningsData.reduce((a, e) => a + Number(e.usdc), 0)
 
   return (
     <div style={{ minHeight: '100vh', background: '#08080E', color: '#EEEEFF' }}>
@@ -245,11 +249,15 @@ export default function DashboardPage() {
                   <p className="address" style={{ marginTop: 2, fontSize: 11 }}>{s.id.slice(0, 8)}… · {new Date(s.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: 14, fontFamily: 'monospace', color: '#EEEEFF' }}>${Number(s.spentUsdc ?? 0).toFixed(6)}</p>
-                  <p style={{ fontSize: 11, color: '#5A5A7A' }}>of ${Number(s.budgetUsdc).toFixed(4)} budget</p>
+                  <p style={{ fontSize: 14, fontFamily: 'monospace', color: s.role === 'PROVIDER' ? '#7B6FFF' : '#EEEEFF' }}>
+                    {s.role === 'PROVIDER' ? '+' : '-'}${Number(s.spentUsdc ?? 0).toFixed(6)}
+                  </p>
+                  <p style={{ fontSize: 11, color: '#5A5A7A' }}>
+                    {s.role === 'PROVIDER' ? 'earned' : `of $${Number(s.budgetUsdc).toFixed(4)} budget`}
+                  </p>
                 </div>
                 <span className={`badge ${STATUS_STYLE[s.status] ?? 'badge-muted'}`}>{s.status}</span>
-                {s.status === 'OPEN' && (
+                {s.status === 'OPEN' && s.role === 'BUYER' && (
                   <Link href={`/session/${s.id}`} style={{ fontSize: 12, color: '#9088FF' }}>View →</Link>
                 )}
               </motion.div>

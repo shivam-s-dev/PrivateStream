@@ -18,12 +18,24 @@ router.get('/', async (req, res) => {
     return
   }
   const sessions = await prisma.session.findMany({
-    where: { buyerId: user.id },
-    include: { dataset: { select: { title: true } } },
+    where: {
+      OR: [
+        { buyerId: user.id },
+        { dataset: { providerId: user.id } }
+      ]
+    },
+    include: { dataset: { select: { title: true, providerId: true } } },
     orderBy: { openedAt: 'desc' },
     take: 50,
   })
-  res.json(sessions)
+
+  // Tag each session with the user's role so the dashboard can split stats correctly
+  const sessionsWithRoles = sessions.map(s => ({
+    ...s,
+    role: s.buyerId === user.id ? 'BUYER' : 'PROVIDER'
+  }))
+
+  res.json(sessionsWithRoles)
 })
 
 // POST /sessions/open — buyer opens an MPP session for a dataset
@@ -211,6 +223,22 @@ router.post('/:sessionId/close', async (req, res) => {
     where: { id: sessionId },
     data: { status: 'CLOSED', closedAt: new Date(), spentUsdc: finalSpent }
   })
+
+  // Increment total sessions and total earned on the Dataset
+  await prisma.dataset.update({
+    where: { id: session.datasetId },
+    data: {
+      totalSessions: { increment: 1 },
+      totalEarned: { increment: finalSpent }
+    }
+  })
+
+  // Invalidate dataset list cache so explore page shows updated stats
+  try {
+    await redis.del('datasets:list:all', `datasets:list:${session.dataset.category}`)
+  } catch (e) {
+    console.error('[Redis] Failed to clear datasets cache on session close:', e)
+  }
 
   // Clear Redis session state
   try {
