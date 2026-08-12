@@ -9,26 +9,41 @@ const router = Router()
 // GET /datasets — list all active datasets (cached 5min in Redis)
 router.get('/', async (req, res) => {
   const cacheKey = `datasets:list:${req.query.category || 'all'}`
-  const cached = await redis.get(cacheKey)
-  if (cached) {
-    res.json(cached)
-    return
+  
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      res.json(cached)
+      return
+    }
+  } catch (e) {
+    console.error('[Redis] Failed to get cache:', e)
   }
 
-  const datasets = await prisma.dataset.findMany({
-    where: { isActive: true },
-    include: {
-      provider: {
-        select: { displayName: true, walletAddress: true }
-      }
-    },
-    orderBy: { totalEarned: 'desc' }
-  })
+  try {
+    const datasets = await prisma.dataset.findMany({
+      where: { isActive: true },
+      include: {
+        provider: {
+          select: { displayName: true, walletAddress: true }
+        }
+      },
+      orderBy: { totalEarned: 'desc' }
+    })
 
-  // Never expose endpointUrl in list response
-  const safe = datasets.map(({ endpointUrl, ...d }: any) => d)
-  await redis.setex(cacheKey, 300, JSON.stringify(safe))
-  res.json(safe)
+    // Never expose endpointUrl in list response
+    const safe = datasets.map(({ endpointUrl, ...d }: any) => d)
+    
+    try {
+      await redis.setex(cacheKey, 300, JSON.stringify(safe))
+    } catch (e) {
+      console.error('[Redis] Failed to set cache:', e)
+    }
+    
+    res.json(safe)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch datasets' })
+  }
 })
 
 // POST /datasets — provider registers a dataset
