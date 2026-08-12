@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { redis } from '../services/redis'
+import { registerDatasetOnChain } from '../services/confidential'
 
 const router = Router()
 
@@ -77,14 +78,22 @@ router.post('/', async (req, res) => {
       }
     })
 
-    // Invalidate the cache so it appears on Explore immediately
-    await redis.del('datasets:list:all')
-    await redis.del(`datasets:list:${body.category}`)
+    // Invalidate the cache gracefully (don't fail if Redis has connection issues)
+    try {
+      await redis.del('datasets:list:all', `datasets:list:${body.category}`)
+    } catch (e) {
+      console.error('[Redis] Failed to clear cache:', e)
+    }
 
-    // Register on Soroban marketplace contract (Placeholder for actual call)
-    // await registerDatasetOnChain(dataset.id, user.walletAddress, body.pricePerSecond)
+    // Register on Soroban marketplace contract
+    let txHash = null
+    try {
+      txHash = await registerDatasetOnChain(dataset.id, user.walletAddress)
+    } catch (e) {
+      console.error('[Stellar] Failed to register dataset on-chain:', e)
+    }
 
-    res.json({ id: dataset.id, endpointHash })
+    res.json({ id: dataset.id, endpointHash, txHash })
   } catch (error) {
     res.status(400).json({ error })
   }

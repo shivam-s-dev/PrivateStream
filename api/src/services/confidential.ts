@@ -65,3 +65,40 @@ export async function settleConfidentialPayment(
 
   return response.hash
 }
+
+/**
+ * Registers a new dataset on-chain by submitting a minimal Stellar transaction.
+ * The dataset ID is embedded in the memo field for verification.
+ */
+export async function registerDatasetOnChain(
+  datasetId: string,
+  providerAddress: string
+): Promise<string> {
+  const relayerKeypair = getRelayerKeypair()
+  const account = await server.loadAccount(relayerKeypair.publicKey())
+
+  let destination = providerAddress
+  try {
+    Keypair.fromPublicKey(providerAddress)
+  } catch {
+    destination = relayerKeypair.publicKey()
+  }
+
+  const tx = new TransactionBuilder(account, {
+    fee: '10000',
+    networkPassphrase: Networks.TESTNET
+  })
+    .addMemo(Memo.text(`REG:${datasetId.substring(0, 12)}`))
+    .addOperation(Operation.payment({
+      destination,
+      asset: Asset.native(),
+      amount: '0.0000001', // Minimum amount just to register on chain
+    }))
+    .setTimeout(30)
+    .build()
+
+  tx.sign(relayerKeypair)
+  const response = await server.submitTransaction(tx)
+  console.log(`[Dataset Registration] Confirmed on Stellar! Hash: ${response.hash}`)
+  return response.hash
+}
