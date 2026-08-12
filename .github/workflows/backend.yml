@@ -31,7 +31,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Generate Prisma client
-        run: npx prisma generate --schema=../prisma/schema.prisma
+        run: npm run generate
 
       - name: Type check
         run: npx tsc --noEmit
