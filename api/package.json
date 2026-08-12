@@ -2,9 +2,6 @@
   "name": "api",
   "version": "1.0.0",
   "main": "index.js",
-  "prisma": {
-    "schema": "../prisma/schema.prisma"
-  },
   "scripts": {
     "dev": "npx tsx watch src/index.ts",
     "start": "npx tsx src/index.ts",
