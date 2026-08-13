@@ -56,7 +56,14 @@ Stellar was the perfect choice for PrivateStream for three reasons:
 2. **Soroban Smart Contracts:** Rust-based smart contracts provide the exact security and escrow capabilities needed to lock funds and guarantee fair settlement between untrusted parties.
 3. **Confidential Tokens (Upcoming/Integration):** Stellar's focus on compliance and privacy allows institutions to stream financial data without broadcasting their spending flow to competitors.
 
+## 👥 User Onboarding & Feedback
+
+We'd love your feedback! Try out the DApp and let us know your thoughts:
+- **Feedback Form:** [Google Form Link](https://forms.gle/Etkvm9isHJMxTzgBA)
+- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1vPeWmoCH3Z8c2wEmYq1u3R5nFYjBR0C0R-zQ-HLotjs/edit?usp=sharing)
+
 ---
+
 
 ## 📸 Product Screenshots
 
@@ -285,4 +292,4 @@ Visit `http://localhost:3000` to interact with the DApp!
 
 ## 🙏 Acknowledgements
 
-Thank you to the Stellar Development Foundation and the hackathon organizers for providing the incredible Soroban smart contract platform and the opportunity to build the future of decentralized data economies. We are thrilled to present **PrivateStream**.
+Thank you to the Stellar Development Foundation and the organizers for providing the incredible Soroban smart contract platform and the opportunity to build the future of decentralized data economies. We are thrilled to present **PrivateStream**.
