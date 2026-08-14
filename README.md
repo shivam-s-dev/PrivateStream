@@ -159,6 +159,7 @@ sequenceDiagram
 
 - **Decentralized Dataset Registry:** Anyone can become a data provider by registering their API endpoint on the Soroban smart contract.
 - **Pay-Per-Second Streaming:** Buyers only pay for the exact duration they consume data, powered by off-chain high-speed state channels.
+- **Gasless Meta-Transactions (Account Abstraction):** Users do not need to pay Stellar network fees or constantly sign popup transactions. The backend acts as a Relayer, signing and paying for the on-chain settlement on behalf of the users, creating a seamless Web2-like experience!
 - **Confidential Payments:** Built with Confidential Tokens in mind to ensure enterprise-grade privacy for data consumption budgets.
 - **Real-Time Provider Analytics:** Providers get a live dashboard showing active sessions, total earnings, and recent buyers.
 - **Live Data Preview:** Buyers can view the raw JSON data stream directly in the browser while their budget ticks down.
