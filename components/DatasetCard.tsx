@@ -58,10 +58,9 @@ export function DatasetCard({ dataset }: { dataset: Dataset }) {
                         justify-center text-accent text-xs font-bold">
           {dataset.provider.displayName?.[0] || '?'}
         </div>
-        <span className="address text-xs">
-          {dataset.provider.walletAddress.slice(0, 8)}...
-          {dataset.provider.walletAddress.slice(-6)}
-        </span>
+        <div className="text-xs text-muted font-mono bg-base px-2 py-1 rounded truncate" title={dataset.provider.walletAddress}>
+          {dataset.provider.walletAddress}
+        </div>
       </div>
     </div>
   )

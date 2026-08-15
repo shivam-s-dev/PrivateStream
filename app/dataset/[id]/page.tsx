@@ -135,7 +135,7 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
             <div className="stat-card">
               <span className="stat-label">Provider</span>
               <span className="stat-value" style={{ fontSize: 16 }}>{dataset.provider.displayName}</span>
-              <span className="stat-sub" style={{ fontFamily: 'monospace', fontSize: 10 }}>{dataset.provider.walletAddress.slice(0, 6)}...{dataset.provider.walletAddress.slice(-4)}</span>
+              <span className="stat-sub truncate max-w-[120px]" title={dataset.provider.walletAddress} style={{ fontFamily: 'monospace', fontSize: 10 }}>{dataset.provider.walletAddress}</span>
             </div>
           </div>
 
@@ -240,7 +240,7 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
                   Set a USDC budget. Data streams immediately and payments tick per second. Close any time — you only pay for what you used.
                 </p>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
-                  Connected as: <span style={{ fontFamily: 'monospace', color: C.secondary }}>{publicKey?.slice(0, 8)}...{publicKey?.slice(-6)}</span>
+                  Connected as: <span style={{ fontFamily: 'monospace', color: C.secondary }} className="break-all">{publicKey}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <input

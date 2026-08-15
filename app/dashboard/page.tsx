@@ -129,7 +129,7 @@ export default function DashboardPage() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#EEEEFF', letterSpacing: '-0.02em', marginBottom: 4 }}>Dashboard</h1>
-            <p className="address">{publicKey?.slice(0, 14)}...{publicKey?.slice(-10)}</p>
+            <p className="address truncate max-w-[200px] sm:max-w-md" title={publicKey || ''}>{publicKey}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 11, color: apiOnline ? '#22D3A0' : '#FBBF24', background: apiOnline ? 'rgba(34,211,160,0.1)' : 'rgba(251,191,36,0.1)', border: `1px solid ${apiOnline ? 'rgba(34,211,160,0.25)' : 'rgba(251,191,36,0.25)'}`, padding: '3px 10px', borderRadius: 99 }}>

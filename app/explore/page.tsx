@@ -64,9 +64,15 @@ export default function ExplorePage() {
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl font-bold text-primary tracking-tight mb-1">Explore Datasets</h1>
-          <p className="text-secondary text-sm">Browse and stream sensitive data with confidential payments.</p>
-
+          <h1 className="text-3xl font-bold text-primary tracking-tight mb-2">Explore Datasets</h1>
+          <p className="text-secondary text-sm mb-4">Browse and stream sensitive data with confidential payments.</p>
+          
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 text-sm text-primary flex items-start gap-3">
+            <span className="text-accent mt-0.5">💡</span>
+            <div>
+              <strong className="text-accent">Dataset Market Guide:</strong> Providers can monetize raw JSON feeds (e.g. trading volume, weather, IoT) per-second. <Link href="/onboard" className="underline hover:text-white">List your dataset here</Link> to start earning USDC. 
+            </div>
+          </div>
         </motion.div>
 
         {/* Search + filter */}
