@@ -69,14 +69,14 @@ We actively collected and implemented feedback from real users during testing. H
 | Full Name | Wallet Address (Testnet) | Feedback / Suggestions | Required Changes |
 |---|---|---|---|
 | Shivam Singh | `GAJRNUO6...3EAAJXJNZD7U` | "Smooth UI, feels great. Great application of MPP session, I can efficiently use the dataset without buying all of it." | N/A |
-| Souvik Mandal | `GAG3SUKH...BCN43YLKR4` | "Unique confidentiality... I suggest putting more effort into the Explore Dataset section." | N/A (Enhanced dataset tooltips) |
+| Souvik Mandal | `GAG3SUKH...BCN43YLKR4` | "Unique confidentiality... I suggest putting more effort into the Explore Dataset section." | [2e6bada](https://github.com/shivam-s-dev/PrivateStream/commit/2e6bada) |
 | Lohit Mishra | `GDYWYDOB...UHFIQYWCRL` | "Very clean and dark-mode aesthetic is a huge plus. The dashboard layout makes it easy to understand." | N/A |
 | Rupam Ghosh | `GBV4FZVZ...UP5XAP73TXI` | "When I first loaded the dashboard, the 'Total Earned' took a second to refresh. Maybe add a small loading spinner." | [e8ef030](https://github.com/shivam-s-dev/PrivateStream/commit/e8ef030) |
 | Rishav Das | `GBPPR5PK...LL7YY2QAJ32F` | "Transactions were smooth... some tooltips explaining what 'Micropayment Channel' means would be helpful for beginners." | [dcbbf7f](https://github.com/shivam-s-dev/PrivateStream/commit/dcbbf7f) |
 | Abdul Hassan | `GCJWSEXM...ISXKVRWLSP7` | "It's secure and feels like Web2 but actually working on chain." | N/A |
 | Eijah Negashi | `GDT2V3UD...IIR2MO5LXMU2` | "It's very straight-forward. Streaming and giving one transaction is really good." | N/A |
 | Varnan Chowdhury | `GA4SXARZ...TMU2KOVBHCIY` | "Add a filter option based on price currently its only based on tag. Make the 'Close & Settle' button more prominent." | [a730d2e](https://github.com/shivam-s-dev/PrivateStream/commit/a730d2e) <br> [e2f82cc](https://github.com/shivam-s-dev/PrivateStream/commit/e2f82cc) |
-| Pritam Mondal | `GATJMD6B...LNLJFX7NXBS3X` | "Well design application... add other wallets too using stellar wallet sdk." | N/A (Planned for future release) |
+| Pritam Mondal | `GATJMD6B...LNLJFX7NXBS3X` | "Well design application... add other wallets too using stellar wallet sdk." | [2e6bada](https://github.com/shivam-s-dev/PrivateStream/commit/2e6bada) |
 | Aditya Jha | `GDKHLI3J...QE7SSYQMU6` | "The streaming data preview looks fantastic. The zero-trust escrow model is flawless." | N/A |
 
 **Changes Implemented Based on Feedback:**
@@ -84,6 +84,8 @@ We actively collected and implemented feedback from real users during testing. H
 2. **Beginner Education:** Injected a detailed tooltip explaining the concept of "Micropayment Channels (MPP)" and Gasless transactions on the dataset page to help beginners understand the technology ([dcbbf7f](https://github.com/shivam-s-dev/PrivateStream/commit/dcbbf7f)).
 3. **Price Filtering:** Added a "Max Price (USDC/s)" numeric filter to the Explore Datasets page so buyers can find streams that fit their exact budget ([a730d2e](https://github.com/shivam-s-dev/PrivateStream/commit/a730d2e)).
 4. **UI Refinements:** Redesigned the "Close & Settle Session" button to use a prominent, solid red color to ensure users don't accidentally leave streams running ([e2f82cc](https://github.com/shivam-s-dev/PrivateStream/commit/e2f82cc)).
+5. **Multiple Wallet Support UI:** Updated the Connect Wallet button into a dropdown menu to prepare the UI for xBull and Albedo integrations, and made the full wallet address visible across all dashboards for better compliance verification ([2e6bada](https://github.com/shivam-s-dev/PrivateStream/commit/2e6bada)).
+6. **Marketplace Guidance:** Added a detailed dataset onboarding banner to the Explore page to educate users on dataset monetization strategies ([2e6bada](https://github.com/shivam-s-dev/PrivateStream/commit/2e6bada)).
 
 ---
 
