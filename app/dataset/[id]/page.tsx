@@ -232,7 +232,10 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
           {!isOwner && (
             connected ? (
               <motion.div whileHover={{ y: -2 }} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 24 }}>
-                <h2 style={{ fontWeight: 700, color: C.primary, marginBottom: 8, fontSize: 16 }}>Open an MPP Session</h2>
+                <h2 style={{ fontWeight: 700, color: C.primary, marginBottom: 4, fontSize: 16 }}>Open an MPP Session</h2>
+                <div style={{ fontSize: 11, color: C.accent, marginBottom: 8, background: `${C.accent}15`, padding: '4px 8px', borderRadius: 4, display: 'inline-block' }}>
+                  ℹ️ <b>Micropayment Channel (MPP):</b> Streams data instantly without blockchain fees per second. Settlement happens only once when you close!
+                </div>
                 <p style={{ fontSize: 14, color: C.secondary, marginBottom: 20 }}>
                   Set a USDC budget. Data streams immediately and payments tick per second. Close any time — you only pay for what you used.
                 </p>
