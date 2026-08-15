@@ -154,7 +154,11 @@ export default function DashboardPage() {
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} className="stat-card">
               <span className="stat-label">{s.label}</span>
-              <span className="stat-value" style={{ color: s.color }}>{s.value}</span>
+              {loadingSession ? (
+                <div style={{ width: 16, height: 16, border: `2px solid ${s.color}40`, borderTopColor: s.color, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '8px 0' }} />
+              ) : (
+                <span className="stat-value" style={{ color: s.color }}>{s.value}</span>
+              )}
               <span className="stat-sub">{s.sub}</span>
             </motion.div>
           ))}
