@@ -343,15 +343,16 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           <motion.button onClick={handleClose} disabled={closing} whileTap={{ scale: 0.97 }}
             id="close-session-btn"
             style={{
-              width: '100%', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              background: `${C.danger}12`, color: C.danger, border: `1.5px solid ${C.danger}35`,
-              borderRadius: 12, fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'background 0.15s',
-              opacity: closing ? 0.55 : 1,
+              width: '100%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: C.danger, color: '#FFFFFF', border: `none`,
+              borderRadius: 12, fontWeight: 700, fontSize: 16, cursor: 'pointer', transition: 'background 0.15s, opacity 0.15s',
+              opacity: closing ? 0.6 : 1,
+              boxShadow: `0 4px 14px ${C.danger}40`
             }}>
             {closing ? <>
-              <span style={{ width: 16, height: 16, border: `2px solid ${C.danger}40`, borderTopColor: C.danger, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-              Settling on Stellar… (waiting for network)
-            </> : 'Close session & settle'}
+              <span style={{ width: 16, height: 16, border: `2px solid #FFFFFF40`, borderTopColor: '#FFFFFF', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+              Settling on Stellar…
+            </> : '🛑 Close & Settle Session'}
           </motion.button>
         )}
 
