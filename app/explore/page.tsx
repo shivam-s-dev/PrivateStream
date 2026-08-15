@@ -28,6 +28,7 @@ async function fetchDatasets(): Promise<Dataset[]> {
 export default function ExplorePage() {
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
+  const [maxPrice, setMaxPrice] = useState<string>('')
 
   const { data: apiDatasets, isLoading, isError } = useQuery({
     queryKey: ['datasets'],
@@ -40,7 +41,8 @@ export default function ExplorePage() {
   const filtered = datasets.filter(d => {
     const matchCat = activeCategory === 'All' || d.category === activeCategory
     const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.description.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
+    const matchPrice = !maxPrice || Number(d.pricePerSecond) <= Number(maxPrice)
+    return matchCat && matchSearch && matchPrice
   })
 
   return (
@@ -75,6 +77,16 @@ export default function ExplorePage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             id="dataset-search"
+          />
+          <input
+            className="input w-full sm:w-48"
+            type="number"
+            placeholder="Max Price (USDC/s)"
+            value={maxPrice}
+            onChange={e => setMaxPrice(e.target.value)}
+            id="price-filter"
+            step="0.0001"
+            min="0"
           />
         </div>
 
