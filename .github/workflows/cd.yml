@@ -8,35 +8,47 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend to Vercel
     runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
       - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+        if: env.VERCEL_TOKEN != ''
+        run: vercel pull --yes --environment=production
       - name: Build Project Artifacts
-        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+        if: env.VERCEL_TOKEN != ''
+        run: vercel build --prod
       - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
+        if: env.VERCEL_TOKEN != ''
+        run: vercel deploy --prebuilt --prod
 
   deploy-contract:
     name: Deploy Smart Contract to Stellar
     runs-on: ubuntu-latest
+    env:
+      STELLAR_SECRET: ${{ secrets.STELLAR_SECRET }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - name: Install System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
       - name: Install stellar-cli
         run: cargo install stellar-cli
       - name: Build Contract
         run: cargo build --target wasm32-unknown-unknown --release
         working-directory: ./contracts/marketplace
       - name: Deploy Contract
+        if: env.STELLAR_SECRET != ''
         run: |
           stellar contract deploy \
             --wasm target/wasm32-unknown-unknown/release/marketplace.wasm \
-            --source "${{ secrets.STELLAR_SECRET }}" \
+            --source "$STELLAR_SECRET" \
             --network testnet
         working-directory: ./contracts/marketplace
