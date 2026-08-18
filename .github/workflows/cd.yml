@@ -36,19 +36,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32v1-none
       - name: Install System Dependencies
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
       - name: Install stellar-cli
         run: cargo install stellar-cli
       - name: Build Contract
-        run: cargo build --target wasm32-unknown-unknown --release
+        run: cargo build --target wasm32v1-none --release
         working-directory: ./contracts/marketplace
       - name: Deploy Contract
         if: env.STELLAR_SECRET != ''
         run: |
           stellar contract deploy \
-            --wasm target/wasm32-unknown-unknown/release/marketplace.wasm \
+            --wasm target/wasm32v1-none/release/marketplace.wasm \
             --source "$STELLAR_SECRET" \
             --network testnet
         working-directory: ./contracts/marketplace
