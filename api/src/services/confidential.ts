@@ -1,7 +1,8 @@
-import { Keypair, TransactionBuilder, Networks, Horizon, Memo, Asset, Operation } from '@stellar/stellar-sdk'
+import { Keypair, TransactionBuilder, Networks, Horizon, Memo, Asset, Operation, rpc, Contract, nativeToScVal } from '@stellar/stellar-sdk'
 
-// Connect to Stellar Testnet (Horizon.Server is the correct class in stellar-sdk v16)
-const server = new Horizon.Server('https://horizon-testnet.stellar.org')
+// Connect to Stellar Testnet (Horizon & Soroban RPC)
+const horizonServer = new Horizon.Server('https://horizon-testnet.stellar.org')
+const sorobanServer = new rpc.Server('https://soroban-testnet.stellar.org')
 
 // The deployed PrivateStream Marketplace contract on Stellar Testnet
 export const MARKETPLACE_CONTRACT_ID = process.env.CONTRACT_MARKETPLACE || 'CDBD72VIJTM4QNV2MR3C3OBRQUHA56PSBFSUJFRHZBYUSUOCQ5TUUNBE'
@@ -17,7 +18,7 @@ function getRelayerKeypair(): Keypair {
 }
 
 /**
- * Settles an MPP session on-chain by submitting a real Stellar Testnet transaction.
+ * Settles an MPP session on-chain by invoking `settle_session` on the Soroban contract.
  * The session ID is embedded in the memo field for auditing.
  * Returns the confirmed transaction hash from the Stellar network.
  */
@@ -37,37 +38,41 @@ export async function settleConfidentialPayment(
     destination = relayerKeypair.publicKey()
   }
 
-  console.log(`[Settlement] Settling ${amountUsdc} USDC to ${destination} for session ${sessionId}`)
+  console.log(`[Settlement] Calling settle_session for ${amountUsdc} USDC to ${destination}`)
 
-  const account = await server.loadAccount(relayerKeypair.publicKey())
+  const account = await horizonServer.loadAccount(relayerKeypair.publicKey())
+  const contract = new Contract(MARKETPLACE_CONTRACT_ID)
 
-  // Clamp the amount: Stellar requires ≥ 0.0000001 XLM (testnet demo uses native XLM to simulate USDC flow)
-  const amountStr = Math.max(0.0000001, amountUsdc).toFixed(7)
+  // Construct the Soroban smart contract call for `settle_session`
+  const operation = contract.call(
+    'settle_session',
+    nativeToScVal(sessionId, { type: 'string' }),
+    nativeToScVal(destination, { type: 'address' }),
+    nativeToScVal(Math.floor(amountUsdc * 10_000_000), { type: 'i128' }) // convert to stroops
+  )
 
-  const tx = new TransactionBuilder(account, {
-    fee: '10000',
+  const txBuilder = new TransactionBuilder(account, {
+    fee: '100000', // Soroban operations require higher base fees
     networkPassphrase: Networks.TESTNET
   })
-    // Embed the session ID as a memo so any explorer can trace this tx back to the session
     .addMemo(Memo.text(`PS:${sessionId.substring(0, 12)}`))
-    .addOperation(Operation.payment({
-      destination,
-      asset: Asset.native(), // testnet demo; production would use the USDC/Circle asset
-      amount: amountStr,
-    }))
+    .addOperation(operation)
     .setTimeout(30)
-    .build()
+    
+  const tx = txBuilder.build()
+  
+  // Prepare transaction using Soroban RPC (simulates and sets footprint)
+  const preparedTx = await sorobanServer.prepareTransaction(tx)
+  preparedTx.sign(relayerKeypair)
 
-  tx.sign(relayerKeypair)
+  const sendResponse = await sorobanServer.sendTransaction(preparedTx)
+  console.log(`[Settlement] Contract call confirmed on Stellar Testnet! Hash: ${sendResponse.hash}`)
 
-  const response = await server.submitTransaction(tx)
-  console.log(`[Settlement] Confirmed on Stellar Testnet! Hash: ${response.hash}`)
-
-  return response.hash
+  return sendResponse.hash
 }
 
 /**
- * Registers a new dataset on-chain by submitting a minimal Stellar transaction.
+ * Registers a new dataset on-chain by invoking `register_dataset` on the Soroban contract.
  * The dataset ID is embedded in the memo field for verification.
  */
 export async function registerDatasetOnChain(
@@ -75,7 +80,7 @@ export async function registerDatasetOnChain(
   providerAddress: string
 ): Promise<string> {
   const relayerKeypair = getRelayerKeypair()
-  const account = await server.loadAccount(relayerKeypair.publicKey())
+  const account = await horizonServer.loadAccount(relayerKeypair.publicKey())
 
   let destination = providerAddress
   try {
@@ -83,22 +88,32 @@ export async function registerDatasetOnChain(
   } catch {
     destination = relayerKeypair.publicKey()
   }
+  
+  console.log(`[Dataset Registration] Calling register_dataset for provider ${destination}`)
 
-  const tx = new TransactionBuilder(account, {
-    fee: '10000',
+  const contract = new Contract(MARKETPLACE_CONTRACT_ID)
+  const operation = contract.call(
+    'register_dataset',
+    nativeToScVal(datasetId, { type: 'string' }),
+    nativeToScVal(destination, { type: 'address' }),
+    nativeToScVal(100, { type: 'u32' }) // example dataset rate or params
+  )
+
+  const txBuilder = new TransactionBuilder(account, {
+    fee: '100000',
     networkPassphrase: Networks.TESTNET
   })
     .addMemo(Memo.text(`REG:${datasetId.substring(0, 12)}`))
-    .addOperation(Operation.payment({
-      destination,
-      asset: Asset.native(),
-      amount: '0.0000001', // Minimum amount just to register on chain
-    }))
+    .addOperation(operation)
     .setTimeout(30)
-    .build()
 
-  tx.sign(relayerKeypair)
-  const response = await server.submitTransaction(tx)
-  console.log(`[Dataset Registration] Confirmed on Stellar! Hash: ${response.hash}`)
+  const tx = txBuilder.build()
+  
+  const preparedTx = await sorobanServer.prepareTransaction(tx)
+  preparedTx.sign(relayerKeypair)
+
+  const response = await sorobanServer.sendTransaction(preparedTx)
+  console.log(`[Dataset Registration] Contract call confirmed on Stellar! Hash: ${response.hash}`)
+  
   return response.hash
 }
