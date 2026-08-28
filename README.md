@@ -60,7 +60,7 @@ Stellar was the perfect choice for PrivateStream for three reasons:
 
 We'd love your feedback! Try out the DApp and let us know your thoughts:
 - **Feedback Form:** [Google Form Link](https://forms.gle/Etkvm9isHJMxTzgBA)
-- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1vPeWmoCH3Z8c2wEmYq1u3R5nFYjBR0C0R-zQ-HLotjs/edit?usp=sharing)
+- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1v2CyzZwaWHbtTjKBmmclzUdS8zqIFsRcKZ18t3FY0Rs/edit?usp=sharing)
 
 ### User Feedback & Iterations
 
