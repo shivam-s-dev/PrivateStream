@@ -12,6 +12,25 @@
 </div>
 
 <br/>
+  <!-- Specific Workflow Badges -->
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/ci.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/ci.yml/badge.svg" alt="Core CI" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/cd.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/cd.yml/badge.svg" alt="Continuous Deployment" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/frontend.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/frontend.yml/badge.svg" alt="Frontend CI" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/backend.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/backend.yml/badge.svg" alt="Backend CI" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/contracts.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/contracts.yml/badge.svg" alt="Contracts CI" />
+  </a>
+</div>
+
+<br/>
 
 ## 🔗 Live Links
 
