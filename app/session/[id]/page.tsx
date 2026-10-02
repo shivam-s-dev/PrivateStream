@@ -58,12 +58,52 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
     async function openSession() {
       setOpeningSession(true)
       try {
+        // 1. Build and sign Soroban contract transaction using Freighter
+        const { signTransaction, getNetworkDetails } = await import('@stellar/freighter-api')
+        const { TransactionBuilder, Networks, Horizon, Contract, nativeToScVal, rpc } = await import('@stellar/stellar-sdk')
+        
+        const horizonServer = new Horizon.Server('https://horizon-testnet.stellar.org')
+        const sorobanServer = new rpc.Server('https://soroban-testnet.stellar.org')
+        
+        const MARKETPLACE_CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_MARKETPLACE || 'CDBD72VIJTM4QNV2MR3C3OBRQUHA56PSBFSUJFRHZBYUSUOCQ5TUUNBE'
+        const networkDetails = await getNetworkDetails()
+        
+        const account = await horizonServer.loadAccount(publicKey)
+        const contract = new Contract(MARKETPLACE_CONTRACT_ID)
+        
+        // Generate a simple ID for the smart contract session (use datasetId + timestamp)
+        const newSessionId = `SESS_${Math.floor(Date.now() / 1000)}`
+
+        const operation = contract.call(
+          'open_session',
+          nativeToScVal(publicKey, { type: 'address' }),
+          nativeToScVal(newSessionId, { type: 'string' }),
+          nativeToScVal(parseInt(datasetId, 10), { type: 'u64' }), // assuming datasetId is a number
+          nativeToScVal(Math.floor(budgetParam * 10_000_000), { type: 'i128' }) // stroops
+        )
+
+        const txBuilder = new TransactionBuilder(account, {
+          fee: '100000',
+          networkPassphrase: Networks.TESTNET
+        })
+          .addOperation(operation)
+          .setTimeout(30)
+          
+        const tx = txBuilder.build()
+        const preparedTx = await sorobanServer.prepareTransaction(tx)
+        
+        // Let the user sign via Freighter (this includes the Escrow approval!)
+        const signedXdr = await signTransaction(preparedTx.toXDR(), { network: 'TESTNET' })
+        
+        // Note: For full production we would submit `signedXdr` to sorobanServer here.
+        // For now, we still ping the backend so it creates the Redis/Postgres record to serve the UI:
         const res = await fetch(`${apiUrl}/api/sessions/open`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ datasetId, budgetUsdc: budgetParam, walletAddress: publicKey }),
+          body: JSON.stringify({ datasetId, budgetUsdc: budgetParam, walletAddress: publicKey, onChainId: newSessionId }),
           signal: AbortSignal.timeout(10000)
         })
+        
         if (res.ok) {
           const data = await res.json()
           setSessionId(data.sessionId)
@@ -74,8 +114,9 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           setError(errData.error || 'Could not open session. Please try again.')
           setSessionId(id)
         }
-      } catch {
-        setError('Could not connect to PrivateStream API. Please check your connection and try again.')
+      } catch (err: any) {
+        console.error(err)
+        setError('Transaction cancelled or failed: ' + err.message)
         setSessionId(id)
         setApiOnline(false)
       } finally {
