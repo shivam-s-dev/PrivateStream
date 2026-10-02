@@ -12,6 +12,25 @@
 </div>
 
 <br/>
+  <!-- Specific Workflow Badges -->
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/ci.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/ci.yml/badge.svg" alt="Core CI" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/cd.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/cd.yml/badge.svg" alt="Continuous Deployment" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/frontend.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/frontend.yml/badge.svg" alt="Frontend CI" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/backend.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/backend.yml/badge.svg" alt="Backend CI" />
+  </a>
+  <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/contracts.yml">
+    <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/contracts.yml/badge.svg" alt="Contracts CI" />
+  </a>
+</div>
+
+<br/>
 
 ## 🔗 Live Links
 
@@ -60,7 +79,7 @@ Stellar was the perfect choice for PrivateStream for three reasons:
 
 We'd love your feedback! Try out the DApp and let us know your thoughts:
 - **Feedback Form:** [Google Form Link](https://forms.gle/Etkvm9isHJMxTzgBA)
-- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1vPeWmoCH3Z8c2wEmYq1u3R5nFYjBR0C0R-zQ-HLotjs/edit?usp=sharing)
+- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1v2CyzZwaWHbtTjKBmmclzUdS8zqIFsRcKZ18t3FY0Rs/edit?usp=sharing)
 
 ### User Feedback & Iterations
 
