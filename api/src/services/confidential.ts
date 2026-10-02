@@ -18,27 +18,17 @@ function getRelayerKeypair(): Keypair {
 }
 
 /**
- * Settles an MPP session on-chain by invoking `settle_session` on the Soroban contract.
- * The session ID is embedded in the memo field for auditing.
- * Returns the confirmed transaction hash from the Stellar network.
+ * Settles an MPP state channel session on-chain by invoking `settle_session` on the Soroban contract.
+ * The contract itself will distribute the funds based on the escrow logic.
  */
 export async function settleConfidentialPayment(
-  providerAddress: string,
+  providerAddress: string, // Unused directly on-chain now, kept for API compatibility
   amountUsdc: number,
   sessionId: string
 ): Promise<string> {
   const relayerKeypair = getRelayerKeypair()
 
-  // Validate the provider address — fall back to relayer self-payment if invalid (testnet only)
-  let destination = providerAddress
-  try {
-    Keypair.fromPublicKey(providerAddress)
-  } catch {
-    console.warn(`[Settlement] Invalid provider address "${providerAddress}", routing payment to relayer for testnet demo.`)
-    destination = relayerKeypair.publicKey()
-  }
-
-  console.log(`[Settlement] Calling settle_session for ${amountUsdc} USDC to ${destination}`)
+  console.log(`[Settlement] Calling settle_session for session ${sessionId}, consumed: ${amountUsdc} USDC`)
 
   const account = await horizonServer.loadAccount(relayerKeypair.publicKey())
   const contract = new Contract(MARKETPLACE_CONTRACT_ID)
@@ -47,7 +37,6 @@ export async function settleConfidentialPayment(
   const operation = contract.call(
     'settle_session',
     nativeToScVal(sessionId, { type: 'string' }),
-    nativeToScVal(destination, { type: 'address' }),
     nativeToScVal(Math.floor(amountUsdc * 10_000_000), { type: 'i128' }) // convert to stroops
   )
 
@@ -73,11 +62,14 @@ export async function settleConfidentialPayment(
 
 /**
  * Registers a new dataset on-chain by invoking `register_dataset` on the Soroban contract.
- * The dataset ID is embedded in the memo field for verification.
  */
 export async function registerDatasetOnChain(
-  datasetId: string,
-  providerAddress: string
+  datasetId: string, // Note: datasetId from backend
+  providerAddress: string,
+  title: string = "Dataset",
+  category: number = 1,
+  pricePerSecond: number = 1, // in stroops
+  endpointHash: string = "hash"
 ): Promise<string> {
   const relayerKeypair = getRelayerKeypair()
   const account = await horizonServer.loadAccount(relayerKeypair.publicKey())
@@ -94,9 +86,11 @@ export async function registerDatasetOnChain(
   const contract = new Contract(MARKETPLACE_CONTRACT_ID)
   const operation = contract.call(
     'register_dataset',
-    nativeToScVal(datasetId, { type: 'string' }),
     nativeToScVal(destination, { type: 'address' }),
-    nativeToScVal(100, { type: 'u32' }) // example dataset rate or params
+    nativeToScVal(title, { type: 'string' }),
+    nativeToScVal(category, { type: 'u32' }),
+    nativeToScVal(pricePerSecond, { type: 'i128' }),
+    nativeToScVal(endpointHash, { type: 'string' })
   )
 
   const txBuilder = new TransactionBuilder(account, {
