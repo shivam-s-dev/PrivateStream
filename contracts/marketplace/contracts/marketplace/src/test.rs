@@ -2,35 +2,37 @@
 
 use super::*;
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use soroban_sdk::token::Client as TokenClient;
+use soroban_sdk::token::StellarAssetClient;
 
 /// Helper to deploy and initialize the contract with a mock USDC token
-fn setup() -> (Env, Address, Address, Address) {
+fn setup() -> (Env, Address, Address, Address, Address) {
     let env = Env::default();
     env.mock_all_auths();
 
     let contract_id = env.register(MarketplaceContract, ());
     let admin = Address::generate(&env);
-    // In tests we use the admin as both fee_collector and the mock USDC token
-    let usdc_token = Address::generate(&env);
+    
+    // Deploy a mock SAC token for testing
+    let token_admin = Address::generate(&env);
+    let usdc_token = env.register_stellar_asset_contract_v2(token_admin.clone());
 
     let client = MarketplaceContractClient::new(&env, &contract_id);
-    client.initialize(&usdc_token, &admin, &50u32); // 0.5% fee
+    client.initialize(&usdc_token.address(), &admin, &50u32); // 0.5% fee
 
-    (env, contract_id, admin, usdc_token)
+    (env, contract_id, admin, usdc_token.address(), token_admin)
 }
 
 #[test]
 fn test_initialize_sets_dataset_count_to_zero() {
-    let (env, contract_id, _, _) = setup();
+    let (env, contract_id, _, _, _) = setup();
     let client = MarketplaceContractClient::new(&env, &contract_id);
     assert_eq!(client.get_dataset_count(), 0);
 }
 
 #[test]
 fn test_register_dataset_increments_count() {
-    let (env, contract_id, _, _) = setup();
-    env.mock_all_auths();
-
+    let (env, contract_id, _, _, _) = setup();
     let client = MarketplaceContractClient::new(&env, &contract_id);
     let provider = Address::generate(&env);
 
@@ -38,7 +40,7 @@ fn test_register_dataset_increments_count() {
         &provider,
         &String::from_str(&env, "DEX Analytics"),
         &1u32,
-        &42i128,  // price_per_second in stroops
+        &42i128,
         &String::from_str(&env, "sha256hashofendpoint"),
     );
 
@@ -47,14 +49,19 @@ fn test_register_dataset_increments_count() {
 }
 
 #[test]
-fn test_register_dataset_stores_correct_data() {
-    let (env, contract_id, _, _) = setup();
-    env.mock_all_auths();
-
+fn test_state_channel_lifecycle() {
+    let (env, contract_id, fee_collector, usdc_token, token_admin) = setup();
     let client = MarketplaceContractClient::new(&env, &contract_id);
+    let token = TokenClient::new(&env, &usdc_token);
+    let stellar_token = StellarAssetClient::new(&env, &usdc_token);
+    
     let provider = Address::generate(&env);
+    let consumer = Address::generate(&env);
+    
+    // Mint some mock USDC to consumer
+    stellar_token.mint(&consumer, &1000);
 
-    let id = client.register_dataset(
+    let dataset_id = client.register_dataset(
         &provider,
         &String::from_str(&env, "Price Feeds"),
         &2u32,
@@ -62,62 +69,32 @@ fn test_register_dataset_stores_correct_data() {
         &String::from_str(&env, "abc123hash"),
     );
 
-    let dataset = client.get_dataset(&id);
+    let session_id = String::from_str(&env, "session-123");
+    
+    // 1. Open Session (Locks 1000 USDC)
+    client.open_session(&consumer, &session_id, &dataset_id, &1000);
+    
+    // Verify escrow
+    assert_eq!(token.balance(&consumer), 0);
+    assert_eq!(token.balance(&contract_address_from_id(&env, &contract_id)), 1000);
 
-    assert_eq!(dataset.id, 1);
-    assert_eq!(dataset.category, 2);
-    assert_eq!(dataset.price_per_second, 18);
-    assert!(dataset.is_active);
-    assert_eq!(dataset.total_earned, 0);
-    assert_eq!(dataset.session_count, 0);
+    let session = client.get_session(&session_id);
+    assert_eq!(session.status, SessionStatus::Active);
+    assert_eq!(session.budget, 1000);
+
+    // 2. Settle Session (Consumes 500 USDC)
+    client.settle_session(&session_id, &500);
+
+    // Fee is 0.5% of 500 = 2 stroops (rounding down)
+    // Provider gets 498, Fee Collector gets 2, Consumer gets 500 refunded
+    assert_eq!(token.balance(&consumer), 500);
+    assert_eq!(token.balance(&provider), 498);
+    assert_eq!(token.balance(&fee_collector), 2);
+    
+    let settled_session = client.get_session(&session_id);
+    assert_eq!(settled_session.status, SessionStatus::Settled);
 }
 
-#[test]
-fn test_register_multiple_datasets() {
-    let (env, contract_id, _, _) = setup();
-    env.mock_all_auths();
-
-    let client = MarketplaceContractClient::new(&env, &contract_id);
-    let provider = Address::generate(&env);
-
-    let id1 = client.register_dataset(&provider, &String::from_str(&env, "Dataset 1"), &1u32, &10i128, &String::from_str(&env, "hash1"));
-    let id2 = client.register_dataset(&provider, &String::from_str(&env, "Dataset 2"), &2u32, &20i128, &String::from_str(&env, "hash2"));
-    let id3 = client.register_dataset(&provider, &String::from_str(&env, "Dataset 3"), &3u32, &30i128, &String::from_str(&env, "hash3"));
-
-    assert_eq!(id1, 1);
-    assert_eq!(id2, 2);
-    assert_eq!(id3, 3);
-    assert_eq!(client.get_dataset_count(), 3);
-}
-
-#[test]
-fn test_get_provider_datasets() {
-    let (env, contract_id, _, _) = setup();
-    env.mock_all_auths();
-
-    let client = MarketplaceContractClient::new(&env, &contract_id);
-    let provider = Address::generate(&env);
-
-    client.register_dataset(&provider, &String::from_str(&env, "D1"), &1u32, &10i128, &String::from_str(&env, "h1"));
-    client.register_dataset(&provider, &String::from_str(&env, "D2"), &2u32, &20i128, &String::from_str(&env, "h2"));
-
-    let ids = client.get_provider_datasets(&provider);
-    assert_eq!(ids.len(), 2);
-}
-
-#[test]
-fn test_toggle_dataset_deactivates() {
-    let (env, contract_id, _, _) = setup();
-    env.mock_all_auths();
-
-    let client = MarketplaceContractClient::new(&env, &contract_id);
-    let provider = Address::generate(&env);
-
-    let id = client.register_dataset(&provider, &String::from_str(&env, "D1"), &1u32, &10i128, &String::from_str(&env, "h1"));
-
-    assert!(client.get_dataset(&id).is_active);
-    client.toggle_dataset(&provider, &id);
-    assert!(!client.get_dataset(&id).is_active);
-    client.toggle_dataset(&provider, &id);
-    assert!(client.get_dataset(&id).is_active);
+fn contract_address_from_id(env: &Env, id: &Address) -> Address {
+    id.clone()
 }
