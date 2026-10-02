@@ -2,17 +2,28 @@
   <img src="public/logo.png" alt="PrivateStream Logo" width="120" />
   <h1>PrivateStream</h1>
   <p><b>Decentralized, Confidential Data Streaming & Monetization on Stellar Soroban</b></p>
+  <p>
+    <a href="https://privatestream-stellar.vercel.app">🌐 Live App</a> ·
+    <a href="https://youtu.be/bD0Y5NGFulY">🎥 Demo Video</a> ·
+    <a href="./docs/architecture.md">📐 Architecture</a> ·
+    <a href="./docs/smart-contract.md">📜 Contract Docs</a> ·
+    <a href="./CONTRIBUTING.md">🤝 Contribute</a>
+  </p>
 
-  <!-- CI/CD and Tech Stack Badges -->
-  <a href="https://github.com/shivam-s-dev/PrivateStream/actions"><img src="https://img.shields.io/badge/CI%2FCD-Passing-brightgreen?style=for-the-badge&logo=github-actions" alt="CI/CD Status"/></a>
-  <img src="https://img.shields.io/badge/Stellar-Soroban-black?style=for-the-badge&logo=stellar" alt="Stellar Soroban"/>
-  <img src="https://img.shields.io/badge/Next.js-13-black?style=for-the-badge&logo=next.js" alt="Next.js"/>
-  <img src="https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=nodedotjs" alt="Node.js"/>
-  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma" alt="Prisma"/>
-</div>
+  <br/>
 
-<br/>
-  <!-- Specific Workflow Badges -->
+  <!-- Tech Stack Badges -->
+  <img src="https://img.shields.io/badge/Stellar-Soroban-black?style=flat-square&logo=stellar" alt="Stellar Soroban"/>
+  <img src="https://img.shields.io/badge/Rust-1.84+-orange?style=flat-square&logo=rust" alt="Rust"/>
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/Node.js-22-339933?style=flat-square&logo=nodedotjs" alt="Node.js"/>
+  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=flat-square&logo=prisma" alt="Prisma"/>
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT"/>
+
+  <br/><br/>
+
+  <!-- CI/CD Workflow Status Badges -->
   <a href="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/ci.yml">
     <img src="https://github.com/shivam-s-dev/PrivateStream/actions/workflows/ci.yml/badge.svg" alt="Core CI" />
   </a>
@@ -32,11 +43,24 @@
 
 <br/>
 
-## 🔗 Live Links
+> **PrivateStream** is a fully open-source, decentralized data streaming marketplace where providers monetize live API data feeds and buyers consume them **pay-per-second** — with payments settled trustlessly on the Stellar blockchain via a Soroban State Channel Escrow.
 
-- **Live DApp:** [https://privatestream-stellar.vercel.app](https://privatestream-stellar.vercel.app)
-- **API Endpoint:** [https://privatestream-api.onrender.com](https://privatestream-api.onrender.com)
-- **Demo Video:** [https://youtu.be/bD0Y5NGFulY](https://youtu.be/bD0Y5NGFulY)
+<br/>
+
+
+## 🔗 Quick Links
+
+| Resource | Link |
+|---|---|
+| 🌐 **Live DApp** | [privatestream-stellar.vercel.app](https://privatestream-stellar.vercel.app) |
+| 🔌 **API Endpoint** | [privatestream-api.onrender.com](https://privatestream-api.onrender.com) |
+| 🎥 **Demo Video** | [youtu.be/bD0Y5NGFulY](https://youtu.be/bD0Y5NGFulY) |
+| 📜 **Contract (Testnet)** | [`CDBD72VI...TUUNBE`](https://stellar.expert/explorer/testnet/contract/CDBD72VIJTM4QNV2MR3C3OBRQUHA56PSBFSUJFRHZBYUSUOCQ5TUUNBE) |
+| 📐 **Architecture Docs** | [docs/architecture.md](./docs/architecture.md) |
+| 📦 **Contract Docs** | [docs/smart-contract.md](./docs/smart-contract.md) |
+| 🤝 **Contributing** | [CONTRIBUTING.md](./CONTRIBUTING.md) |
+| 🛡️ **Security** | [SECURITY.md](./SECURITY.md) |
+| 📋 **Changelog** | [CHANGELOG.md](./CHANGELOG.md) |
 
 ---
 
@@ -59,27 +83,29 @@ PrivateStream is a decentralized, pay-as-you-go data streaming marketplace built
 
 ---
 
-## ⚙️ Technical Details
+## ⚙️ Technical Details (SCF Level Integration)
 
-- **Smart Contracts (Rust/Soroban):** Handles dataset registration, provider verification, and the core escrow/settlement logic.
-- **Backend (Node.js/Express):** Acts as a high-speed relay and Micropayment Channel (MPP). It fetches the raw data from providers, proxies it to buyers, ticks the budget counter, and submits the final cryptographically signed settlement to the blockchain.
-- **Frontend (Next.js/React):** A beautiful, real-time dashboard for buyers to explore datasets and monitor live feeds, and for providers to track their earnings dynamically.
+To meet the highest standards of Web3 complexity, PrivateStream implements a **Zero-Trust State Channel with Soroban Escrow**:
+
+- **Smart Contracts (Rust/Soroban):** A fully-featured Escrow and State Channel contract. It utilizes native Soroban features including `require_auth` for cryptographic signatures, `Stellar Asset Contract (SAC)` interfaces for native token locking, and complex on-chain state machines (`SessionStatus`) to handle timeouts and disputes.
+- **Backend (Node.js/Express):** Acts as a high-speed off-chain State Channel Relayer. It signs off on continuous data consumption and acts as a Soroban RPC Poller to index on-chain `SessionSettled` events, completely removing the backend from directly holding user funds.
+- **Frontend (Next.js/React):** Directly invokes the Soroban smart contract via `@stellar/freighter-api` to lock escrow funds. It reads real-time session states directly from the Stellar Testnet using `@stellar/stellar-sdk` and the Soroban RPC.
 - **Database (Neon/PostgreSQL via Prisma):** Stores encrypted endpoint URIs, user metadata, and active off-chain session states.
 
 ---
 
-## 🚀 Why Stellar?
+## 🚀 Why Stellar & Soroban?
 
 Stellar was the perfect choice for PrivateStream for three reasons:
 1. **Speed & Low Cost:** Data streaming requires micro-transactions. Stellar's sub-penny fees and 5-second finality make pay-per-second streaming economically viable.
-2. **Soroban Smart Contracts:** Rust-based smart contracts provide the exact security and escrow capabilities needed to lock funds and guarantee fair settlement between untrusted parties.
+2. **Soroban State Channels:** By combining fast off-chain backend signatures with an on-chain Soroban Escrow, we achieve true trustless data streaming. Buyers cryptographically lock funds in the contract, and the contract splits the escrow based on cryptographic proofs—a highly complex and scalable Web3 architecture.
 3. **Confidential Tokens (Upcoming/Integration):** Stellar's focus on compliance and privacy allows institutions to stream financial data without broadcasting their spending flow to competitors.
 
 ## 👥 User Onboarding & Feedback
 
 We'd love your feedback! Try out the DApp and let us know your thoughts:
 - **Feedback Form:** [Google Form Link](https://forms.gle/Etkvm9isHJMxTzgBA)
-- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1v2CyzZwaWHbtTjKBmmclzUdS8zqIFsRcKZ18t3FY0Rs/edit?usp=sharing)
+- **Response Sheet:** [View Live Responses](https://docs.google.com/spreadsheets/d/1vPeWmoCH3Z8c2wEmYq1u3R5nFYjBR0C0R-zQ-HLotjs/edit?usp=sharing)
 
 ### User Feedback & Iterations
 
@@ -158,26 +184,26 @@ PrivateStream/
 ---
 
 ## 🏗️ Architecture
-
 ```mermaid
 sequenceDiagram
     participant B as Buyer (Frontend)
     participant A as Backend Relay (API)
     participant P as Provider Endpoint
-    participant S as Soroban Contract
+    participant S as Soroban Escrow Contract
 
-    B->>S: Open Session (Lock USDC Budget)
-    B->>A: Request Stream (Session ID)
+    B->>S: 1. `open_session` (Lock USDC Budget in Escrow)
+    B->>A: 2. Request Stream (with On-Chain Session ID)
     loop Every 2 seconds
         A->>P: Fetch Live Data
         P-->>A: Raw JSON Data
-        A->>A: Increment Spent Amount (Off-chain)
+        A->>A: Increment Spent Amount (Off-chain State)
         A-->>B: Stream JSON Data
     end
-    B->>A: Close Session (Final Amount)
-    A->>S: Submit Final Settlement Signature
-    S->>S: Transfer Spent to Provider
-    S->>S: Refund Remainder to Buyer
+    B->>A: 3. Close Session 
+    A->>S: 4. `settle_session` (Submit Cryptographic Proof)
+    S->>S: 5. Verify Signature & Split Escrow
+    S-->>P: Transfer consumed amount to Provider
+    S-->>B: Refund unspent amount to Buyer
 ```
 
 ---
@@ -335,6 +361,47 @@ Visit `http://localhost:3000` to interact with the DApp!
 
 ---
 
+## 🤝 Contributing
+
+PrivateStream is **fully open source** and welcomes contributions of all kinds!
+
+- 🐛 **Found a bug?** [Open a Bug Report](https://github.com/shivam-s-dev/PrivateStream/issues/new?template=bug_report.md)
+- 💡 **Have a feature idea?** [Open a Feature Request](https://github.com/shivam-s-dev/PrivateStream/issues/new?template=feature_request.md)
+- 🔧 **Want to contribute code?** Read the [Contributing Guide](./CONTRIBUTING.md) first.
+- 🛡️ **Found a security issue?** Follow our [Security Policy](./SECURITY.md) for responsible disclosure.
+
+Please ensure all contributions follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+---
+
+## 📋 Open Issues (Good First Issues)
+
+| # | Title | Label |
+|---|---|---|
+| [#1](https://github.com/shivam-s-dev/PrivateStream/issues) | `open_session` fails silently when Freighter is locked | `bug`, `good first issue` |
+| [#2](https://github.com/shivam-s-dev/PrivateStream/issues) | Add XDR event decoding in `sessionPoller.ts` to sync DB on `SETT_SESS` | `enhancement`, `good first issue` |
+| [#3](https://github.com/shivam-s-dev/PrivateStream/issues) | `dispute_session` timeout too long (24h) for testnet demos — make configurable | `enhancement` |
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for full details.
+
+```
+MIT License — Copyright (c) 2026 Shivam Singh
+```
+
+---
+
 ## 🙏 Acknowledgements
 
-Thank you to the Stellar Development Foundation and the organizers for providing the incredible Soroban smart contract platform and the opportunity to build the future of decentralized data economies. We are thrilled to present **PrivateStream**.
+Thank you to the **Stellar Development Foundation** and the EasyA team for providing the incredible Soroban smart contract platform and the opportunity to build the future of decentralized data economies.
+
+Special thanks to our 10 testnet beta testers who provided honest, actionable feedback that shaped the final product.
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ on Stellar Soroban · <a href="https://stellar.org">stellar.org</a></sub>
+</div>
