@@ -50,7 +50,7 @@ fn test_register_dataset_increments_count() {
 
 #[test]
 fn test_state_channel_lifecycle() {
-    let (env, contract_id, fee_collector, usdc_token, token_admin) = setup();
+    let (env, contract_id, fee_collector, usdc_token, _token_admin) = setup();
     let client = MarketplaceContractClient::new(&env, &contract_id);
     let token = TokenClient::new(&env, &usdc_token);
     let stellar_token = StellarAssetClient::new(&env, &usdc_token);
@@ -95,6 +95,6 @@ fn test_state_channel_lifecycle() {
     assert_eq!(settled_session.status, SessionStatus::Settled);
 }
 
-fn contract_address_from_id(env: &Env, id: &Address) -> Address {
+fn contract_address_from_id(_env: &Env, id: &Address) -> Address {
     id.clone()
 }

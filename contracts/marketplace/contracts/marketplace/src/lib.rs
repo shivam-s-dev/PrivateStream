@@ -1,9 +1,39 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short,
+    contract, contractevent, contractimpl, contracttype,
     Address, Env, String, Vec,
     token::Client as TokenClient,
 };
+
+// ─── Contract Events (modern #[contractevent] macro) ───────────────────────
+
+#[contractevent]
+pub struct DatasetRegistered {
+    pub dataset_id: u64,
+}
+
+#[contractevent]
+pub struct SessionOpened {
+    pub session_id: String,
+    pub consumer: Address,
+    pub budget: i128,
+}
+
+#[contractevent]
+pub struct SessionSettled {
+    pub session_id: String,
+    pub consumed_amount: i128,
+    pub provider_amount: i128,
+    pub refund_amount: i128,
+}
+
+#[contractevent]
+pub struct SessionDisputed {
+    pub session_id: String,
+    pub consumer: Address,
+}
+
+// ─── Storage Types ──────────────────────────────────────────────────────────
 
 #[contracttype]
 #[derive(Clone, PartialEq, Debug, Eq)]
@@ -16,13 +46,13 @@ pub enum SessionStatus {
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Session {
-    pub id: String,           // UUID from backend
+    pub id: String,
     pub dataset_id: u64,
-    pub consumer: Address,    // user who locked funds
+    pub consumer: Address,
     pub provider: Address,
-    pub budget: i128,         // max USDC locked in escrow
+    pub budget: i128,
     pub price_per_second: i128,
-    pub opened_at: u64,       // ledger timestamp
+    pub opened_at: u64,
     pub status: SessionStatus,
 }
 
@@ -34,7 +64,7 @@ pub struct Dataset {
     pub title: String,
     pub category: u32,
     pub price_per_second: i128,  // in stroops (USDC 7 decimals)
-    pub endpoint_hash: String,   // SHA256 hash of endpoint URL (not stored plaintext)
+    pub endpoint_hash: String,   // SHA-256 hash of endpoint URL (not stored plaintext)
     pub is_active: bool,
     pub total_earned: i128,
     pub session_count: u32,
@@ -45,23 +75,26 @@ pub enum DataKey {
     Dataset(u64),
     DatasetCount,
     ProviderDatasets(Address),
-    FeeRate,          // basis points, e.g. 50 = 0.5%
+    FeeRate,       // basis points, e.g. 50 = 0.5%
     FeeCollector,
     UsdcToken,
     Session(String),
 }
+
+// ─── Contract ───────────────────────────────────────────────────────────────
 
 #[contract]
 pub struct MarketplaceContract;
 
 #[contractimpl]
 impl MarketplaceContract {
-    // Initialize the contract with USDC token and fee config
+    /// Initialize the contract with USDC token and fee config.
+    /// Must be called once after deployment.
     pub fn initialize(
         env: Env,
         usdc_token: Address,
         fee_collector: Address,
-        fee_rate_bps: u32,     // 50 = 0.5%
+        fee_rate_bps: u32,  // 50 = 0.5%
     ) {
         env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
         env.storage().instance().set(&DataKey::FeeCollector, &fee_collector);
@@ -69,7 +102,7 @@ impl MarketplaceContract {
         env.storage().instance().set(&DataKey::DatasetCount, &0u64);
     }
 
-    // Provider registers a new dataset
+    /// Register a new dataset on-chain. Provider's wallet must sign.
     pub fn register_dataset(
         env: Env,
         provider: Address,
@@ -107,15 +140,13 @@ impl MarketplaceContract {
         env.storage().persistent()
             .set(&DataKey::ProviderDatasets(provider), &provider_datasets);
 
-        env.events().publish(
-            (symbol_short!("REGISTER"),),
-            (id,)
-        );
+        env.events().publish_event(&DatasetRegistered { dataset_id: id });
 
         id
     }
 
-    // Open a state channel session and escrow funds
+    /// Open a state channel session and lock consumer's budget in escrow.
+    /// Consumer's wallet must sign — funds are pulled from their account.
     pub fn open_session(
         env: Env,
         consumer: Address,
@@ -125,50 +156,59 @@ impl MarketplaceContract {
     ) {
         consumer.require_auth();
 
-        // ensure session ID is unique
-        assert!(!env.storage().persistent().has(&DataKey::Session(session_id.clone())), "Session exists");
-        
-        // get dataset
-        let dataset: Dataset = env.storage().persistent().get(&DataKey::Dataset(dataset_id)).expect("Dataset not found");
+        assert!(
+            !env.storage().persistent().has(&DataKey::Session(session_id.clone())),
+            "Session already exists"
+        );
+
+        let dataset: Dataset = env.storage().persistent()
+            .get(&DataKey::Dataset(dataset_id))
+            .expect("Dataset not found");
         assert!(dataset.is_active, "Dataset inactive");
         assert!(budget > 0, "Budget must be positive");
 
-        // transfer funds from consumer to contract (Escrow)
+        // Lock funds in the contract (Escrow)
         let usdc: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
         let token = TokenClient::new(&env, &usdc);
         let contract_address = env.current_contract_address();
-        
-        // token.transfer requires consumer auth, which is already enforced above or inherently by the token contract
         token.transfer(&consumer, &contract_address, &budget);
 
         let session = Session {
             id: session_id.clone(),
             dataset_id,
             consumer: consumer.clone(),
-            provider: dataset.provider.clone(),
+            provider: dataset.provider,
             budget,
             price_per_second: dataset.price_per_second,
             opened_at: env.ledger().timestamp(),
             status: SessionStatus::Active,
         };
         env.storage().persistent().set(&DataKey::Session(session_id.clone()), &session);
-        
-        env.events().publish((symbol_short!("OPEN_SESS"),), (session_id, consumer, budget));
+
+        env.events().publish_event(&SessionOpened {
+            session_id,
+            consumer,
+            budget,
+        });
     }
 
-    // Settle a completed state channel session: split escrowed payment and refund remainder
+    /// Settle a completed session: distribute escrowed funds to provider,
+    /// collect platform fee, and refund unspent budget to consumer.
+    /// Only callable by the fee_collector (backend relayer).
     pub fn settle_session(
         env: Env,
         session_id: String,
         consumed_amount: i128,
     ) {
-        // Only callable by the platform (fee_collector address acts as backend relayer)
-        let fee_collector: Address = env.storage().instance().get(&DataKey::FeeCollector).unwrap();
+        let fee_collector: Address = env.storage().instance()
+            .get(&DataKey::FeeCollector).unwrap();
         fee_collector.require_auth();
 
-        let mut session: Session = env.storage().persistent().get(&DataKey::Session(session_id.clone())).expect("Session not found");
-        assert!(session.status == SessionStatus::Active, "Not active");
-        assert!(consumed_amount <= session.budget, "Exceeds budget");
+        let mut session: Session = env.storage().persistent()
+            .get(&DataKey::Session(session_id.clone()))
+            .expect("Session not found");
+        assert!(session.status == SessionStatus::Active, "Session not active");
+        assert!(consumed_amount <= session.budget, "Consumed amount exceeds budget");
 
         session.status = SessionStatus::Settled;
         env.storage().persistent().set(&DataKey::Session(session_id.clone()), &session);
@@ -192,28 +232,37 @@ impl MarketplaceContract {
             token.transfer(&contract_address, &session.consumer, &refund_amount);
         }
 
-        // Update dataset stats
-        let mut dataset: Dataset = env.storage().persistent().get(&DataKey::Dataset(session.dataset_id)).unwrap();
+        // Update dataset statistics
+        let mut dataset: Dataset = env.storage().persistent()
+            .get(&DataKey::Dataset(session.dataset_id)).unwrap();
         dataset.total_earned += consumed_amount;
         dataset.session_count += 1;
         env.storage().persistent().set(&DataKey::Dataset(session.dataset_id), &dataset);
 
-        env.events().publish(
-            (symbol_short!("SETT_SESS"),),
-            (session_id, consumed_amount, provider_amount, refund_amount)
-        );
+        env.events().publish_event(&SessionSettled {
+            session_id,
+            consumed_amount,
+            provider_amount,
+            refund_amount,
+        });
     }
 
-    // Dispute session if provider ghosts or fails to settle (time-locked refund)
+    /// Dispute a session if provider fails to settle within 24 hours.
+    /// Consumer receives a full refund of the locked budget.
     pub fn dispute_session(env: Env, session_id: String) {
-        let mut session: Session = env.storage().persistent().get(&DataKey::Session(session_id.clone())).expect("Session not found");
-        
+        let mut session: Session = env.storage().persistent()
+            .get(&DataKey::Session(session_id.clone()))
+            .expect("Session not found");
+
         session.consumer.require_auth();
-        assert!(session.status == SessionStatus::Active, "Not active");
-        
-        // Timeout: 24 hours (86400 seconds)
+        assert!(session.status == SessionStatus::Active, "Session not active");
+
+        // 24-hour timeout
         let current_time = env.ledger().timestamp();
-        assert!(current_time >= session.opened_at + 86400, "Dispute period not reached");
+        assert!(
+            current_time >= session.opened_at + 86400,
+            "Dispute period not yet reached (24h required)"
+        );
 
         session.status = SessionStatus::Disputed;
         env.storage().persistent().set(&DataKey::Session(session_id.clone()), &session);
@@ -222,15 +271,19 @@ impl MarketplaceContract {
         let usdc: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
         let token = TokenClient::new(&env, &usdc);
         let contract_address = env.current_contract_address();
-        
+
         if session.budget > 0 {
             token.transfer(&contract_address, &session.consumer, &session.budget);
         }
 
-        env.events().publish((symbol_short!("DISP_SESS"),), (session_id, session.consumer));
+        env.events().publish_event(&SessionDisputed {
+            session_id,
+            consumer: session.consumer,
+        });
     }
 
-    // Read functions
+    // ─── Read-only functions ────────────────────────────────────────────────
+
     pub fn get_session(env: Env, session_id: String) -> Session {
         env.storage().persistent().get(&DataKey::Session(session_id)).unwrap()
     }
